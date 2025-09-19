@@ -10,12 +10,22 @@
 	<link rel="stylesheet" href="{markserv}templates/highlight-js-github-gist.css">
 	<script type="text/javascript" id="MathJax-script" async
 	      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-        </script>
+	       </script>
+	<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
 </head>
 <body>
 <article class="markdown-body">
 {{{content}}}
 <footer><sup><hr> Served by <a href="https://www.npmjs.com/package/markserv">MarkServ</a> | PID: {{pid}}</sup></footer>
 </article>
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		mermaid.initialize({
+			startOnLoad: true,
+			theme: 'default',
+			securityLevel: 'loose'
+		});
+	});
+</script>
 </body>
 </html>
