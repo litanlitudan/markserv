@@ -54,10 +54,12 @@
     }
   },
   "bin": {
-    "markserv": "lib/cli.js",
-    "readme": "lib/readme.js"
+    "markserv": "bin/markserv",
+    "readme": "bin/readme"
   },
   "files": [
+    "bin/markserv",
+    "bin/readme",
     "lib/cli.js",
     "lib/cli-defs.js",
     "lib/cli-help.txt",
@@ -79,7 +81,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "http://github.com/markserv/markserv.git"
+    "url": "http://github.com/litanlitudan/markserv.git"
   },
   "dependencies": {
     "chalk": "^5.3.0",
