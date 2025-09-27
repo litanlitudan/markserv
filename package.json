@@ -1,12 +1,25 @@
 {
   "name": "markserv",
-  "version": "1.17.4",
+  "version": "2.0.0-beta.1",
   "description": "🏁  serve markdown as html (GitHub style), index directories, live-reload as you edit",
-  "preferGlobal": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "test": "xo && npm run cover",
-    "cover": "nyc --reporter=lcov --reporter=html --reporter=text ava",
-    "coveralls": "cat ./coverage/lcov.info | ./node_modules/.bin/coveralls -v"
+    "build": "node scripts/build.js",
+    "dev": "node --watch lib/cli.js",
+    "start": "node lib/cli.js",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:ui": "vitest --ui",
+    "cover": "vitest run --coverage",
+    "lint": "eslint . --fix",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "migrate": "node scripts/migrate-to-esm.js",
+    "prepare": "husky install",
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "code",
@@ -69,54 +82,69 @@
     "url": "http://github.com/markserv/markserv.git"
   },
   "dependencies": {
-    "analyze-deps": "^2.0.0",
-    "bluebird": "^3.7.2",
-    "chalk": "^3.0.0",
-    "commander": "^4.0.1",
-    "connect": "^3.7.0",
-    "connect-livereload": "^0.6.1",
-    "deepmerge": "^4.2.2",
-    "emoji-regex": "^8.0.0",
-    "handlebars": "^4.5.3",
-    "implant": "^2.0.3",
-    "is-online": "^8.2.1",
-    "less": "^3.10.3",
-    "livereload": "^0.8.2",
-    "markdown-it": "^10.0.0",
-    "markdown-it-anchor": "^5.2.5",
-    "markdown-it-emoji": "^1.4.0",
-    "markdown-it-highlightjs": "^3.0.0",
-    "markdown-it-include": "^1.1.0",
-    "markdown-it-mathjax": "^2.0.0",
-    "markdown-it-table-of-contents": "^0.4.4",
+    "chalk": "^5.3.0",
+    "chokidar": "^3.6.0",
+    "compression": "^1.7.4",
+    "express": "^4.21.1",
+    "handlebars": "^4.7.8",
+    "highlight.js": "^11.10.0",
+    "is-online": "^10.0.0",
+    "less": "^4.2.0",
+    "markdown-it": "^14.1.0",
+    "markdown-it-anchor": "^9.2.0",
+    "markdown-it-emoji": "^3.0.0",
+    "markdown-it-highlightjs": "^4.2.0",
+    "markdown-it-include": "^2.0.0",
+    "markdown-it-mathjax3": "^4.3.2",
+    "markdown-it-table-of-contents": "^0.8.0",
     "markdown-it-task-lists": "^2.1.1",
-    "meow": "^6.0.0",
-    "micromatch": "^4.0.2",
-    "mime": "^2.4.4",
-    "open": "^6.0.0",
-    "promptly": "^3.0.3",
-    "send": "^0.17.1",
-    "snyk": "^1.266.0",
-    "term-img": "^4.1.0"
+    "mime-types": "^2.1.35",
+    "open": "^10.1.0",
+    "ora": "^8.1.0",
+    "serve-static": "^1.16.2",
+    "ws": "^8.18.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "all-contributors-cli": "^6.11.2",
-    "ava": "^2.4.0",
-    "coveralls": "^3.0.9",
-    "get-port": "^5.1.0",
-    "husky": "^3.1.0",
-    "nyc": "^15.0.0",
-    "request": "^2.88.0",
-    "xo": "^0.25.3"
+    "@types/node": "^20.16.11",
+    "@vitest/ui": "^2.1.3",
+    "eslint": "^9.13.0",
+    "eslint-config-prettier": "^9.1.0",
+    "get-port": "^7.1.0",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "node-fetch": "^3.3.2",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
   },
-  "xo": {
-    "esnext": true,
-    "semicolon": false,
-    "rules": {
-      "node/no-unpublished-bin": 2
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "useTabs": true
+  },
+  "eslintConfig": {
+    "env": {
+      "node": true,
+      "es2024": true
+    },
+    "extends": [
+      "eslint:recommended",
+      "prettier"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 2024,
+      "sourceType": "module"
     }
   },
-  "ava": {
-    "failfast": true
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml}": [
+      "prettier --write"
+    ]
   }
 }

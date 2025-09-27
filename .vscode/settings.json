@@ -1,5 +1,5 @@
 {
     "xo.enable": true,
-    "xo.format.enable": true
+    "xo.format.enable": true,
+    "files.autoSave": "afterDelay"
   }
-  
