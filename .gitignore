@@ -12,4 +12,3 @@ coverage/
 *.swo
 *~
 package-lock.json
-.husky/
