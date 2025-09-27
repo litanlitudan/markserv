@@ -65,16 +65,42 @@ body .markdown-body {
   background-repeat: no-repeat;
 }
 
-.icon.isfolder:before {
-  background-color: #34495E;
+/* Folder styling - blue */
+.icon.isfolder a {
+  font-weight: 600;
+  color: #0066cc;
+  transition: all 0.2s ease;
 }
 
-.icon.isfile:before {
-  background-color: #34495E;
+/* File styling - black */
+.icon.isfile a {
+  color: #000000;
+  transition: all 0.2s ease;
 }
 
+/* Hover effects */
+.icon.isfolder a:hover {
+  color: #0052a3;
+  transform: translateX(3px);
+  text-decoration: underline;
+}
+
+.icon.isfile a:hover {
+  color: #333333;
+  transform: translateX(3px);
+  text-decoration: underline;
+}
+
+/* List item styling */
 li.icon {
-    list-style-type: none;
+  list-style-type: none;
+  padding: 4px 8px;
+  transition: background-color 0.2s ease;
+  border-radius: 4px;
+}
+
+li.icon:hover {
+  background-color: rgba(102, 126, 234, 0.08);
 }
 
 .dir h1.icon {
