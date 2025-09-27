@@ -18,7 +18,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "migrate": "node scripts/migrate-to-esm.js",
-    "prepare": "husky install",
+    "prepare": "command -v husky >/dev/null && husky || exit 0",
     "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
@@ -48,11 +48,6 @@
     "template",
     "templating"
   ],
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm test"
-    }
-  },
   "bin": {
     "markserv": "bin/markserv",
     "readme": "bin/readme"
