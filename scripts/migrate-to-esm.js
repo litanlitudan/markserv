@@ -96,13 +96,13 @@ function addDirnameFilename(content) {
 			const lastImport = importMatches[importMatches.length - 1]
 			const insertPosition = content.indexOf(lastImport) + lastImport.length
 			content =
-				content.slice(0, insertPosition) +
-				'\n' +
-				importLines.join('\n') +
-				content.slice(insertPosition)
+				`${content.slice(0, insertPosition) 
+				}\n${ 
+				importLines.join('\n') 
+				}${content.slice(insertPosition)}`
 		} else {
 			// No imports found, add at the beginning
-			content = importLines.join('\n') + '\n' + content
+			content = `${importLines.join('\n')  }\n${  content}`
 		}
 	}
 
