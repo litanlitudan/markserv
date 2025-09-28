@@ -14,22 +14,11 @@
 	<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
 	<style>
 		.download-link {
-			display: inline-block;
-			padding: 3px 10px;
-			background: #0366d6;
-			color: white;
+			color: #0366d6;
 			text-decoration: none;
-			border-radius: 3px;
-			font-size: 11px;
-			font-weight: 500;
-			transition: background 0.2s;
-			margin: 0 8px;
-			vertical-align: middle;
 		}
 		.download-link:hover {
-			background: #0256c7;
-			color: white;
-			text-decoration: none;
+			text-decoration: underline;
 		}
 		footer sup {
 			line-height: 1.6;
@@ -39,7 +28,7 @@
 <body>
 <article class="markdown-body">
 {{{content}}}
-<footer><sup><hr> <a href="{{filePath}}?download=true" class="download-link" download="{{fileName}}">⬇ Download</a>|&nbsp; Last Modified: {{lastModified}} &nbsp;|&nbsp; PID: {{pid}}</sup></footer>
+<footer><sup><hr> <a href="{{filePath}}?download=true" class="download-link" download="{{fileName}}">⬇ Download</a> &nbsp;|&nbsp; Last Modified: {{lastModified}} &nbsp;|&nbsp; PID: {{pid}}</sup></footer>
 </article>
 <script>
 	document.addEventListener('DOMContentLoaded', function() {
