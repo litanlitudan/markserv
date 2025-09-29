@@ -50,8 +50,8 @@
 			line-height: 1.5 !important;
 		}
 
-		/* Ensure ALL text elements maintain consistent sizing */
-		body.expanded .markdown-body * {
+		/* Ensure ALL text elements maintain consistent sizing EXCEPT header */
+		body.expanded .markdown-body > *:not(header) {
 			/* Prevent any scaling - maintain exact same dimensions */
 			font-size: inherit !important;
 			line-height: inherit !important;
@@ -159,6 +159,36 @@
 			padding: 30px !important; /* Same as normal mode */
 		}
 
+		/* Ensure header elements maintain exact same size in expanded mode */
+		body.expanded .markdown-body header {
+			font-size: 16px !important; /* Force same size as normal mode */
+		}
+
+		body.expanded .markdown-body header sup {
+			font-size: 12px !important; /* Keep the same small size */
+			line-height: 1.6 !important;
+			color: #586069 !important;
+		}
+
+		body.expanded .markdown-body header a {
+			font-size: 12px !important; /* Same as sup */
+		}
+
+		body.expanded .markdown-body .download-link {
+			font-size: 12px !important; /* Maintain same size */
+		}
+
+		/* Ensure toggle button maintains exact same size in expanded mode */
+		body.expanded .width-toggle {
+			padding: 3px 10px !important;
+			font-size: 12px !important;
+		}
+
+		body.expanded .width-toggle svg {
+			width: 14px !important;
+			height: 14px !important;
+		}
+
 		/* Responsive handling for expanded mode */
 		@media screen and (max-width: 1440px) {
 			body.expanded {
@@ -204,15 +234,20 @@
 			transform: translateY(0);
 		}
 
+		/* Different color but same size for active state */
 		.width-toggle.active {
 			background: #0969da;
 			color: white;
 			border-color: #0860ca;
+			/* Ensure size remains identical */
+			padding: 3px 10px;
+			font-size: 12px;
 		}
 
 		.width-toggle.active:hover {
 			background: #0860ca;
 			border-color: #0757b8;
+			transform: translateY(-1px);
 		}
 
 		.width-toggle svg {
@@ -289,22 +324,36 @@
 		.download-link:hover {
 			text-decoration: underline;
 		}
-		footer sup {
+		/* Set explicit base size for header to prevent inheritance */
+		header {
+			margin-bottom: 20px;
+			padding-bottom: 10px;
+			font-size: 16px !important; /* Base size, don't inherit from .markdown-body */
+		}
+		header sup {
 			line-height: 1.6;
+			font-size: 12px !important; /* Fixed small size */
+			color: #586069;
+		}
+		header hr {
+			margin-top: 10px;
+			border: 0;
+			border-bottom: 1px solid #e1e4e8;
 		}
 	</style>
 </head>
 <body>
 <article class="markdown-body">
-{{{content}}}
-<footer><sup><hr> <a href="{{filePath}}?download=true" class="download-link" download="{{fileName}}">⬇ Download</a> &nbsp;|&nbsp; Last Modified: {{lastModified}} &nbsp;|&nbsp; PID: {{pid}}
+<header><sup><a href="{{filePath}}?download=true" class="download-link" download="{{fileName}}">⬇ Download</a> &nbsp;|&nbsp; Last Modified: {{lastModified}} &nbsp;|&nbsp; PID: {{pid}}
 <span class="width-toggle" id="widthToggle" title="Toggle expanded view">
 	<svg viewBox="0 0 16 16">
 		<path d="M3.5 5a.5.5 0 00-.5.5v5c0 .28.22.5.5.5h9a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5h-9zM2 5.5C2 4.67 2.67 4 3.5 4h9c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5h-9A1.5 1.5 0 012 10.5v-5z"/>
 		<path d="M1 8a.75.75 0 01.75-.75h2.5a.75.75 0 010 1.5h-2.5A.75.75 0 011 8zm10.75-.75a.75.75 0 000 1.5h2.5a.75.75 0 000-1.5h-2.5z"/>
 	</svg>
 	<span id="toggleText">Expand</span>
-</span></sup></footer>
+</span></sup>
+<hr></header>
+{{{content}}}
 </article>
 <script>
 	document.addEventListener('DOMContentLoaded', function() {
