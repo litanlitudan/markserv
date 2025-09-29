@@ -106,7 +106,7 @@
 
 <!-- Drop indicator -->
 <div class="drop-indicator" id="dropIndicator">
-	📁 Drop files here to upload
+	📁 Drop files or folders here to upload
 </div>
 
 <script>
@@ -149,21 +149,81 @@
 	// Handle dropped files
 	uploadZone.addEventListener('drop', handleDrop, false);
 
-	function handleDrop(e) {
+	async function handleDrop(e) {
 		const dt = e.dataTransfer;
-		const files = dt.files;
-		handleFiles(files);
+		const items = dt.items;
+
+		if (items) {
+			// Use DataTransferItemList interface to handle both files and folders
+			const entries = [];
+			for (let i = 0; i < items.length; i++) {
+				const item = items[i];
+				if (item.kind === 'file') {
+					const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : item.getAsEntry();
+					if (entry) {
+						entries.push(entry);
+					}
+				}
+			}
+
+			// Process all entries (files and folders)
+			for (const entry of entries) {
+				await processEntry(entry, '');
+			}
+		} else {
+			// Fallback to old method for browsers that don't support webkitGetAsEntry
+			const files = dt.files;
+			handleFiles(files, '');
+		}
 	}
 
-	function handleFiles(files) {
-		([...files]).forEach(uploadFile);
+	async function processEntry(entry, path) {
+		if (entry.isFile) {
+			// Handle file
+			entry.file(function(file) {
+				uploadFile(file, path);
+			});
+		} else if (entry.isDirectory) {
+			// Handle directory
+			const dirPath = path ? path + '/' + entry.name : entry.name;
+			const dirReader = entry.createReader();
+
+			// Read all entries in the directory
+			const readEntries = () => {
+				return new Promise((resolve, reject) => {
+					dirReader.readEntries(function(entries) {
+						resolve(entries);
+					}, reject);
+				});
+			};
+
+			// Read entries in batches (readEntries may not return all at once)
+			let allEntries = [];
+			let entries;
+			do {
+				entries = await readEntries();
+				allEntries = allEntries.concat(entries);
+			} while (entries.length > 0);
+
+			// Process all entries in this directory
+			for (const subEntry of allEntries) {
+				await processEntry(subEntry, dirPath);
+			}
+		}
 	}
 
-	function uploadFile(file) {
+	function handleFiles(files, relativePath = '') {
+		([...files]).forEach(file => uploadFile(file, relativePath));
+	}
+
+	function uploadFile(file, relativePath = '') {
 		const uploadId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
+		// Determine display name with path
+		const displayName = relativePath ? relativePath + '/' + file.name : file.name;
+
 		// Create progress UI
-		const progressItem = createProgressItem(file.name, uploadId);
+		const progressItem = createProgressItem(displayName, uploadId);
 		uploadProgress.appendChild(progressItem);
 		uploadProgress.classList.add('active');
 
@@ -176,6 +236,11 @@
 		// Create FormData
 		const formData = new FormData();
 		formData.append('file', file);
+
+		// Include the relative path if uploading from a folder
+		if (relativePath) {
+			formData.append('relativePath', relativePath);
+		}
 
 		// Get current directory path from URL
 		const currentPath = window.location.pathname;
