@@ -13,6 +13,82 @@
 	       </script>
 	<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
 	<style>
+		/* Add transition for width changes */
+		body {
+			transition: width 0.3s ease;
+		}
+
+		/* Expanded mode - wider but still centered */
+		body.expanded {
+			width: 1400px !important;
+			max-width: 95% !important;
+		}
+
+		/* Ensure proper centering in all modes */
+		body {
+			margin-left: auto !important;
+			margin-right: auto !important;
+		}
+
+		/* Responsive handling for expanded mode */
+		@media screen and (max-width: 1440px) {
+			body.expanded {
+				width: 95% !important;
+			}
+		}
+
+		/* Keep responsive behavior for smaller screens */
+		@media screen and (max-width: 767px) {
+			body.expanded {
+				width: auto !important;
+			}
+		}
+
+		/* Toggle button styles */
+		.width-toggle {
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			margin-left: 10px;
+			cursor: pointer;
+			padding: 3px 10px;
+			border: 1px solid #d1d5da;
+			border-radius: 6px;
+			background: #f6f8fa;
+			font-size: 12px;
+			color: #24292e;
+			vertical-align: middle;
+			user-select: none;
+			transition: all 0.2s ease;
+		}
+
+		.width-toggle:hover {
+			background: #e1e4e8;
+			border-color: #c1c7cd;
+			transform: translateY(-1px);
+		}
+
+		.width-toggle:active {
+			transform: translateY(0);
+		}
+
+		.width-toggle.active {
+			background: #0969da;
+			color: white;
+			border-color: #0860ca;
+		}
+
+		.width-toggle.active:hover {
+			background: #0860ca;
+			border-color: #0757b8;
+		}
+
+		.width-toggle svg {
+			width: 14px;
+			height: 14px;
+			fill: currentColor;
+		}
+
 		.download-link {
 			color: #0366d6;
 			text-decoration: none;
@@ -28,7 +104,14 @@
 <body>
 <article class="markdown-body">
 {{{content}}}
-<footer><sup><hr> <a href="{{filePath}}?download=true" class="download-link" download="{{fileName}}">⬇ Download</a> &nbsp;|&nbsp; Last Modified: {{lastModified}} &nbsp;|&nbsp; PID: {{pid}}</sup></footer>
+<footer><sup><hr> <a href="{{filePath}}?download=true" class="download-link" download="{{fileName}}">⬇ Download</a> &nbsp;|&nbsp; Last Modified: {{lastModified}} &nbsp;|&nbsp; PID: {{pid}}
+<span class="width-toggle" id="widthToggle" title="Toggle expanded view">
+	<svg viewBox="0 0 16 16">
+		<path d="M3.5 5a.5.5 0 00-.5.5v5c0 .28.22.5.5.5h9a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5h-9zM2 5.5C2 4.67 2.67 4 3.5 4h9c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5h-9A1.5 1.5 0 012 10.5v-5z"/>
+		<path d="M1 8a.75.75 0 01.75-.75h2.5a.75.75 0 010 1.5h-2.5A.75.75 0 011 8zm10.75-.75a.75.75 0 000 1.5h2.5a.75.75 0 000-1.5h-2.5z"/>
+	</svg>
+	<span id="toggleText">Expand</span>
+</span></sup></footer>
 </article>
 <script>
 	document.addEventListener('DOMContentLoaded', function() {
@@ -36,6 +119,47 @@
 			startOnLoad: true,
 			theme: 'default',
 			securityLevel: 'loose'
+		});
+
+		// Width toggle functionality
+		const body = document.body;
+		const widthToggle = document.getElementById('widthToggle');
+		const toggleText = document.getElementById('toggleText');
+
+		// Load saved preference
+		const savedExpanded = localStorage.getItem('markserv-file-expanded') === 'true';
+		if (savedExpanded) {
+			body.classList.add('expanded');
+			toggleText.textContent = 'Normal';
+			widthToggle.classList.add('active');
+			widthToggle.title = 'Return to normal width';
+		}
+
+		// Toggle function
+		function toggleWidth() {
+			const isExpanded = body.classList.toggle('expanded');
+
+			// Update button
+			toggleText.textContent = isExpanded ? 'Normal' : 'Expand';
+			widthToggle.classList.toggle('active', isExpanded);
+			widthToggle.title = isExpanded ? 'Return to normal width' : 'Toggle expanded view';
+
+			// Save preference
+			localStorage.setItem('markserv-file-expanded', isExpanded);
+		}
+
+		// Handle click
+		widthToggle.addEventListener('click', function(e) {
+			e.preventDefault();
+			toggleWidth();
+		});
+
+		// Keyboard shortcut (Alt + W)
+		document.addEventListener('keydown', function(e) {
+			if (e.altKey && e.key === 'w') {
+				e.preventDefault();
+				toggleWidth();
+			}
 		});
 	});
 </script>
