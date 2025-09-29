@@ -118,7 +118,7 @@
 			fill: currentColor;
 		}
 
-		/* Heading anchor links - invisible but functional */
+		/* Heading anchor links */
 		.markdown-body h1,
 		.markdown-body h2,
 		.markdown-body h3,
@@ -138,12 +138,33 @@
 			color: #0366d6;
 		}
 
+		.heading-anchor {
+			position: absolute;
+			left: -1.2em;
+			opacity: 0;
+			transition: opacity 0.2s ease;
+			color: #0366d6;
+			text-decoration: none;
+			font-weight: normal;
+			line-height: inherit;
+			padding-right: 0.5em;
+		}
+
+		.markdown-body h1:hover .heading-anchor,
+		.markdown-body h2:hover .heading-anchor,
+		.markdown-body h3:hover .heading-anchor,
+		.markdown-body h4:hover .heading-anchor,
+		.markdown-body h5:hover .heading-anchor,
+		.markdown-body h6:hover .heading-anchor {
+			opacity: 1;
+		}
+
 		/* Copy notification */
 		.copy-notification {
 			position: fixed;
 			top: 20px;
 			right: 20px;
-			background: #28a745;
+			background: #0366d6;
 			color: white;
 			padding: 8px 16px;
 			border-radius: 4px;
@@ -209,10 +230,25 @@
 
 				heading.id = id;
 
-				// Make heading clickable to copy URL
-				heading.style.cursor = 'pointer';
-				heading.title = 'Click to copy link to this heading';
+				// Add anchor link icon
+				const anchor = document.createElement('a');
+				anchor.className = 'heading-anchor';
+				anchor.href = `#${id}`;
+				anchor.title = 'Copy link to this heading';
+
+				// Handle click to copy URL
+				anchor.addEventListener('click', function(e) {
+					e.preventDefault();
+					const url = `${window.location.origin}${window.location.pathname}#${id}`;
+					copyToClipboard(url);
+				});
+
+				// Prepend anchor to heading
+				heading.insertBefore(anchor, heading.firstChild);
+
+				// Make heading itself clickable too
 				heading.addEventListener('click', function(e) {
+					if (e.target === anchor) return; // Don't double-handle anchor clicks
 					const url = `${window.location.origin}${window.location.pathname}#${id}`;
 					copyToClipboard(url);
 				});
