@@ -178,6 +178,17 @@
 			font-size: 12px !important; /* Maintain same size */
 		}
 
+		/* Ensure header separator maintains same style, only width changes */
+		body.expanded .markdown-body header hr {
+			height: 0 !important;
+			padding: 0 !important;
+			margin: 10px 0 0 0 !important;
+			background-color: transparent !important;
+			border: 0 !important;
+			border-bottom: 1px solid #e1e4e8 !important;
+			/* Width naturally adjusts with container */
+		}
+
 		/* Ensure toggle button maintains exact same size in expanded mode */
 		body.expanded .width-toggle {
 			padding: 3px 10px !important;
@@ -335,10 +346,14 @@
 			font-size: 12px !important; /* Fixed small size */
 			color: #586069;
 		}
-		header hr {
-			margin-top: 10px;
-			border: 0;
-			border-bottom: 1px solid #e1e4e8;
+		/* Header separator - override markdown-body hr styles */
+		.markdown-body header hr {
+			height: 0 !important;
+			padding: 0 !important;
+			margin: 10px 0 0 0 !important;
+			background-color: transparent !important;
+			border: 0 !important;
+			border-bottom: 1px solid #e1e4e8 !important;
 		}
 	</style>
 </head>
