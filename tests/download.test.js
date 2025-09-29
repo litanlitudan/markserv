@@ -37,7 +37,7 @@ describe('Download functionality', () => {
 		}
 	})
 
-	it('should show download page for non-media files with HTML accept header', async () => {
+	it('should render text files as formatted HTML with download link', async () => {
 		const port = await getPort()
 		const flags = {
 			port,
@@ -55,11 +55,13 @@ describe('Download functionality', () => {
 			})
 			const html = await response.text()
 
-			// Check for download page elements
-			expect(html).toContain('download-container')
-			expect(html).toContain('File Type:')
-			expect(html).toContain('File Size:')
-			expect(html).toContain('Download File')
+			// Check that JSON file is rendered as formatted text
+			expect(html).toContain('<pre><code class="language-plaintext hljs">')
+			expect(html).toContain('&quot;name&quot;: &quot;markserv&quot;')
+			// Check for download link
+			expect(html).toContain('download-link')
+			expect(html).toContain('⬇ Download')
+			expect(html).toContain('package.json?download=true')
 		} finally {
 			if (server && server.httpServer) {
 				await new Promise((resolve) => server.httpServer.close(resolve))
