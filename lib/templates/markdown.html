@@ -8,6 +8,19 @@
 	<meta charset="utf-8">
 	<link rel="stylesheet" href="{markserv}templates/markserv.css">
 	<link rel="stylesheet" href="{markserv}templates/highlight-js-github-gist.css">
+	<!-- Syntax highlighting with all common languages -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/c.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
 	<script type="text/javascript" id="MathJax-script" async
 	      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
 	       </script>
@@ -30,25 +43,115 @@
 			margin-right: auto !important;
 		}
 
-		/* IMPORTANT: Keep font sizes and content scale consistent */
+		/* IMPORTANT: Keep ALL content elements at exact same size in both modes */
 		body.expanded .markdown-body {
 			/* Preserve the same font size and line height */
 			font-size: 16px !important;
 			line-height: 1.5 !important;
 		}
 
-		/* Ensure code blocks, tables, and other elements don't scale */
-		body.expanded .markdown-body code,
-		body.expanded .markdown-body pre,
-		body.expanded .markdown-body table,
-		body.expanded .markdown-body h1,
-		body.expanded .markdown-body h2,
-		body.expanded .markdown-body h3,
-		body.expanded .markdown-body h4,
-		body.expanded .markdown-body h5,
-		body.expanded .markdown-body h6 {
-			/* Keep original sizes - don't scale with width */
+		/* Ensure ALL text elements maintain consistent sizing */
+		body.expanded .markdown-body * {
+			/* Prevent any scaling - maintain exact same dimensions */
 			font-size: inherit !important;
+			line-height: inherit !important;
+		}
+
+		/* Code blocks - maintain exact same styling */
+		body.expanded .markdown-body pre {
+			font-size: 13.6px !important; /* Same as normal mode */
+			line-height: 1.45 !important;
+			padding: 16px !important;
+			margin: 16px 0 !important;
+		}
+
+		body.expanded .markdown-body code {
+			font-size: 85% !important; /* Same as normal mode */
+			padding: 0.2em 0.4em !important;
+			margin: 0 !important;
+		}
+
+		/* Code inside pre blocks */
+		body.expanded .markdown-body pre code {
+			font-size: 100% !important; /* Inherit from pre */
+			padding: 0 !important;
+		}
+
+		/* Tables - maintain exact same cell sizing */
+		body.expanded .markdown-body table {
+			font-size: 16px !important;
+		}
+
+		body.expanded .markdown-body table th,
+		body.expanded .markdown-body table td {
+			padding: 6px 13px !important;
+			line-height: 1.5 !important;
+		}
+
+		/* Headings - maintain exact same sizes */
+		body.expanded .markdown-body h1 {
+			font-size: 2em !important;
+			line-height: 1.25 !important;
+			margin: 24px 0 16px !important;
+		}
+
+		body.expanded .markdown-body h2 {
+			font-size: 1.5em !important;
+			line-height: 1.25 !important;
+			margin: 24px 0 16px !important;
+		}
+
+		body.expanded .markdown-body h3 {
+			font-size: 1.25em !important;
+			line-height: 1.25 !important;
+			margin: 24px 0 16px !important;
+		}
+
+		body.expanded .markdown-body h4 {
+			font-size: 1em !important;
+			line-height: 1.25 !important;
+			margin: 24px 0 16px !important;
+		}
+
+		body.expanded .markdown-body h5 {
+			font-size: 0.875em !important;
+			line-height: 1.25 !important;
+			margin: 24px 0 16px !important;
+		}
+
+		body.expanded .markdown-body h6 {
+			font-size: 0.85em !important;
+			line-height: 1.25 !important;
+			margin: 24px 0 16px !important;
+		}
+
+		/* Lists - maintain exact same spacing */
+		body.expanded .markdown-body ul,
+		body.expanded .markdown-body ol {
+			padding-left: 2em !important;
+		}
+
+		body.expanded .markdown-body li {
+			line-height: 1.5 !important;
+		}
+
+		/* Blockquotes - maintain exact same styling */
+		body.expanded .markdown-body blockquote {
+			padding: 0 1em !important;
+			font-size: 16px !important;
+			line-height: 1.5 !important;
+		}
+
+		/* Images - maintain same max widths */
+		body.expanded .markdown-body img {
+			max-width: 100% !important;
+			height: auto !important;
+		}
+
+		/* Horizontal rules */
+		body.expanded .markdown-body hr {
+			height: 0.25em !important;
+			margin: 24px 0 !important;
 		}
 
 		/* Ensure padding stays consistent */
@@ -205,10 +308,47 @@
 </article>
 <script>
 	document.addEventListener('DOMContentLoaded', function() {
+		// Initialize Mermaid
 		mermaid.initialize({
 			startOnLoad: true,
 			theme: 'default',
 			securityLevel: 'loose'
+		});
+
+		// Initialize highlight.js for code blocks
+		window.addEventListener('load', function() {
+			if (typeof hljs !== 'undefined') {
+				// Apply highlighting to all code blocks
+				document.querySelectorAll('pre code[class*="language-"]').forEach((block) => {
+					// Skip plaintext
+					if (block.className.includes('language-plaintext')) {
+						return;
+					}
+
+					// Get the text content (this will unescape HTML entities)
+					const code = block.textContent || block.innerText;
+
+					// Detect the language from the class
+					const langMatch = block.className.match(/language-(\w+)/);
+					const language = langMatch ? langMatch[1] : null;
+
+					if (language) {
+						try {
+							// Apply highlighting
+							const result = hljs.highlight(code, { language: language });
+							block.innerHTML = result.value;
+						} catch(e) {
+							// If language not supported, try auto-detection
+							try {
+								const result = hljs.highlightAuto(code);
+								block.innerHTML = result.value;
+							} catch(e2) {
+								console.log('Failed to highlight:', e2);
+							}
+						}
+					}
+				});
+			}
 		});
 
 		// Add heading anchor links
