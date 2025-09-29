@@ -30,6 +30,32 @@
 			margin-right: auto !important;
 		}
 
+		/* IMPORTANT: Keep font sizes and content scale consistent */
+		body.expanded .markdown-body {
+			/* Preserve the same font size and line height */
+			font-size: 16px !important;
+			line-height: 1.5 !important;
+		}
+
+		/* Ensure code blocks, tables, and other elements don't scale */
+		body.expanded .markdown-body code,
+		body.expanded .markdown-body pre,
+		body.expanded .markdown-body table,
+		body.expanded .markdown-body h1,
+		body.expanded .markdown-body h2,
+		body.expanded .markdown-body h3,
+		body.expanded .markdown-body h4,
+		body.expanded .markdown-body h5,
+		body.expanded .markdown-body h6 {
+			/* Keep original sizes - don't scale with width */
+			font-size: inherit !important;
+		}
+
+		/* Ensure padding stays consistent */
+		body.expanded .markdown-body {
+			padding: 30px !important; /* Same as normal mode */
+		}
+
 		/* Responsive handling for expanded mode */
 		@media screen and (max-width: 1440px) {
 			body.expanded {
@@ -41,6 +67,9 @@
 		@media screen and (max-width: 767px) {
 			body.expanded {
 				width: auto !important;
+			}
+			body.expanded .markdown-body {
+				padding: 10px !important; /* Keep mobile padding */
 			}
 		}
 
