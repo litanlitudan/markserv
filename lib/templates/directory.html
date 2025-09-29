@@ -10,6 +10,34 @@
 	<link rel="stylesheet" href="{markserv}templates/highlight-js-github-gist.css">
 	<link rel="stylesheet" href="{markserv}icons/icons.css">
 	<style>
+		/* Remove default list padding to align with footer */
+		.markdown-body ul {
+			padding-left: 0;
+			margin: 0;
+			list-style: none;
+		}
+
+		/* Style list items with proper spacing */
+		.markdown-body li.icon {
+			padding: 8px 0;
+			margin: 0;
+			position: relative;
+			padding-left: 40px; /* Space for icon */
+		}
+
+		/* Position icons */
+		.markdown-body li.icon:before {
+			position: absolute;
+			left: 8px;
+			top: 50%;
+			transform: translateY(-50%);
+		}
+
+		/* Ensure links fill the width */
+		.markdown-body li.icon a {
+			text-decoration: none;
+		}
+
 		.upload-zone {
 			transition: all 0.3s ease;
 		}
@@ -98,7 +126,12 @@
 <article class="markdown-body upload-zone">
 <h1 class="icon folder isfolder">{{#each breadcrumbs}}<a href="{{href}}">{{text}}</a>{{/each}}</h1>
 {{{content}}}
-<footer><sup><hr> PID: {{pid}}</sup></footer>
+<footer>
+	<sup>
+		<hr>
+		{{countsText}} | PID: {{pid}}
+	</sup>
+</footer>
 </article>
 
 <!-- Upload progress indicator -->
