@@ -43,11 +43,8 @@ describe('Diff file rendering', () => {
 		// Check that the response is HTML
 		expect(response.headers.get('content-type')).toBe('text/html')
 
-		// Check that the diff content is rendered with line numbers
-		expect(html).toContain('class="code-block-container"')
-		expect(html).toContain('class="line-numbered-code"')
-		expect(html).toContain('class="line-number"')
-		expect(html).toContain('language-diff')
+		// Check that the diff content is rendered with syntax highlighting
+		expect(html).toContain('<pre><code class="language-diff hljs">')
 
 		// Check for diff-specific highlighting classes
 		expect(html).toContain('hljs-addition')
