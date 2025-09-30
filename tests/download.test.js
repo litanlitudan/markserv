@@ -55,9 +55,14 @@ describe('Download functionality', () => {
 			})
 			const html = await response.text()
 
-			// Check that JSON file is rendered as formatted text with syntax highlighting
-			expect(html).toContain('<pre><code class="language-json hljs">')
-			expect(html).toContain('&quot;name&quot;: &quot;markserv&quot;')
+			// Check that JSON file is rendered with line numbers and syntax highlighting
+			expect(html).toContain('<div class="code-block-container">')
+			expect(html).toContain('<pre class="line-numbered-code">')
+			expect(html).toContain('<code class="language-json hljs nohighlight">')
+			expect(html).toContain('<span class="code-line"')
+			expect(html).toContain('<span class="line-number"')
+			expect(html).toContain('&quot;name&quot;')
+			expect(html).toContain('&quot;markserv&quot;')
 			// Check for download link
 			expect(html).toContain('download-link')
 			expect(html).toContain('⬇ Download')

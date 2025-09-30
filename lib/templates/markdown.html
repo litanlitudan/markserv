@@ -65,10 +65,22 @@
 			margin: 16px 0 !important;
 		}
 
+		/* Exception: line-numbered code blocks have their own padding */
+		body.expanded .markdown-body pre.line-numbered-code {
+			padding: 16px !important; /* Override general pre padding */
+		}
+
 		body.expanded .markdown-body code {
 			font-size: 85% !important; /* Same as normal mode */
 			padding: 0.2em 0.4em !important;
 			margin: 0 !important;
+		}
+
+		/* Exception: code inside line-numbered blocks has no padding */
+		body.expanded .markdown-body .line-numbered-code code {
+			padding: 0 !important;
+			font-size: 12px !important;
+			line-height: 20px !important;
 		}
 
 		/* Code inside pre blocks */
@@ -445,6 +457,156 @@
 			font-size: 13px !important;
 			line-height: 1.6 !important;
 		}
+
+		/* Code block container - GitHub-style with consistent sizing */
+		.markdown-body .code-block-container {
+			background: #ffffff;
+			border: 1px solid #e1e4e8;
+			border-radius: 6px;
+			margin: 16px 0 !important; /* Force fixed margin */
+			overflow: hidden;
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+			font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace !important;
+			font-size: 12px !important; /* Fixed size */
+			line-height: 20px !important; /* Fixed line height */
+		}
+
+		/* When code block is first child after header (like MLIR files), remove top margin */
+		.markdown-body header + .code-block-container {
+			margin-top: 0 !important;
+		}
+
+		.markdown-body .code-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 10px 16px;
+			background: #f6f8fa;
+			border-bottom: 1px solid #e1e4e8;
+			font-size: 12px !important;
+		}
+
+		.markdown-body .code-filename {
+			font-weight: 600;
+			color: #24292e;
+		}
+
+		.markdown-body .code-info {
+			color: #586069;
+			font-size: 11px !important;
+		}
+
+		.markdown-body .line-numbered-code {
+			margin: 0;
+			padding: 16px;
+			background: #ffffff;
+			overflow-x: auto;
+			font-size: 12px !important; /* Match container */
+			line-height: 20px !important; /* Match container */
+		}
+
+		.markdown-body .line-numbered-code code {
+			display: block;
+			padding: 0;
+			font-size: 12px !important; /* Match container */
+			line-height: 20px !important; /* Match container */
+			color: #24292e;
+			background: transparent;
+		}
+
+		.markdown-body .code-line {
+			display: block;
+			padding: 0 16px 0 0;
+		}
+
+		.markdown-body .code-line:hover {
+			background-color: #f6f8fa;
+		}
+
+		.markdown-body .line-number {
+			display: inline-block;
+			min-width: 40px;
+			padding: 0 10px;
+			text-align: right;
+			color: #6a737d;
+			background-color: #ffffff;
+			border-right: 1px solid #e1e4e8;
+			user-select: none;
+			cursor: pointer;
+			font-variant-numeric: tabular-nums;
+			margin-right: 16px;
+			margin-left: -16px;
+			position: relative;
+			z-index: 1;
+			transition: all 0.1s ease;
+		}
+
+		.markdown-body .line-number:hover {
+			color: #0366d6;
+			background-color: #f6f8fa;
+		}
+
+		/* Override inherited 16px from expanded mode with code's fixed 12px */
+		/* Use higher specificity to ensure it overrides .markdown-body > * rule */
+		body.expanded .markdown-body > .code-block-container {
+			font-size: 12px !important; /* Override the inherited 16px */
+			line-height: 20px !important;
+			margin: 16px 0 !important;
+			font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace !important;
+		}
+
+		/* Ensure first code block after header has no top margin in expanded mode */
+		body.expanded .markdown-body header + .code-block-container {
+			margin-top: 0 !important;
+		}
+
+		body.expanded .markdown-body .code-header {
+			font-size: 12px !important;
+			line-height: 20px !important;
+			padding: 10px 16px !important;
+		}
+
+		body.expanded .markdown-body .code-info {
+			font-size: 11px !important;
+		}
+
+		body.expanded .markdown-body .line-numbered-code {
+			font-size: 12px !important;
+			line-height: 20px !important;
+			padding: 16px !important;
+		}
+
+		body.expanded .markdown-body .line-numbered-code code {
+			font-size: 12px !important;
+			line-height: 20px !important;
+		}
+
+		/* Prevent all child elements from inheriting the 16px from .markdown-body */
+		body.expanded .markdown-body .code-block-container * {
+			font-size: inherit !important; /* Inherit from .code-block-container (12px), not .markdown-body (16px) */
+			line-height: inherit !important;
+		}
+
+		/* Re-apply specific sizes with higher specificity */
+		body.expanded .markdown-body .code-block-container .code-header {
+			font-size: 12px !important;
+			line-height: 20px !important;
+		}
+
+		body.expanded .markdown-body .code-block-container .code-info {
+			font-size: 11px !important;
+		}
+
+		body.expanded .markdown-body .code-block-container .line-numbered-code {
+			font-size: 12px !important;
+			line-height: 20px !important;
+			padding: 16px !important;
+		}
+
+		body.expanded .markdown-body .code-block-container .line-numbered-code code {
+			font-size: 12px !important;
+			line-height: 20px !important;
+		}
 	</style>
 </head>
 <body>
@@ -585,6 +747,39 @@
 
 		// Initialize heading copy functionality
 		addHeadingCopyFunctionality();
+
+		// Line number click to copy URL functionality
+		function addLineNumberCopyFunctionality() {
+			const lineNumbers = document.querySelectorAll('.line-number');
+
+			lineNumbers.forEach((lineNumber) => {
+				lineNumber.addEventListener('click', function(e) {
+					e.preventDefault();
+					const lineNum = this.getAttribute('data-line');
+					const url = `${window.location.origin}${window.location.pathname}#L${lineNum}`;
+
+					copyToClipboard(url);
+
+					// Update URL without scrolling
+					history.replaceState(null, null, `#L${lineNum}`);
+
+					// Highlight the line
+					const codeLine = document.getElementById(`L${lineNum}`);
+					if (codeLine) {
+						// Remove previous highlights
+						document.querySelectorAll('.code-line').forEach(line => {
+							line.style.backgroundColor = '';
+						});
+
+						// Highlight current line
+						codeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					}
+				});
+			});
+		}
+
+		// Initialize line number functionality
+		addLineNumberCopyFunctionality();
 
 		// Width toggle functionality
 		const body = document.body;
