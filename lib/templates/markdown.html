@@ -357,6 +357,94 @@
 			border: 0 !important;
 			border-bottom: 1px solid #e1e4e8 !important;
 		}
+
+		/* Log output container - terminal-style with consistent sizing */
+		.markdown-body .log-output-container {
+			background: #1a1b26;
+			border-radius: 8px;
+			padding: 16px !important; /* Force fixed padding */
+			font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace !important;
+			font-size: 13px !important; /* Fixed size */
+			line-height: 1.6 !important; /* Fixed line height */
+			overflow-x: auto;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+			border: 1px solid #2d2e3f;
+			margin: 16px 0 !important; /* Force fixed margin */
+		}
+
+		.markdown-body .log-output-header {
+			border-bottom: 1px solid #2d2e3f;
+			padding-bottom: 8px;
+			margin-bottom: 12px;
+			color: #565869;
+			font-size: 11px !important; /* Fixed small size */
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.markdown-body .log-output-title {
+			color: #3b3c4f;
+		}
+
+		.markdown-body .log-output-content {
+			margin: 0;
+			padding: 0;
+			background: transparent;
+			overflow-x: auto;
+		}
+
+		.markdown-body .log-output-code {
+			display: block;
+			color: #c0caf5;
+			background: transparent;
+			font-size: 13px !important; /* Match container */
+			line-height: 1.6 !important; /* Match container */
+		}
+
+		/* Override inherited 16px from expanded mode with log's fixed 13px */
+		/* Use higher specificity to ensure it overrides .markdown-body > * rule */
+		body.expanded .markdown-body > .log-output-container {
+			font-size: 13px !important; /* Override the inherited 16px */
+			line-height: 1.6 !important;
+			padding: 16px !important;
+			margin: 16px 0 !important;
+			font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace !important;
+		}
+
+		body.expanded .markdown-body .log-output-header {
+			font-size: 11px !important;
+			line-height: 1.6 !important;
+			padding-bottom: 8px !important;
+			margin-bottom: 12px !important;
+		}
+
+		body.expanded .markdown-body .log-output-content {
+			margin: 0 !important;
+			padding: 0 !important;
+		}
+
+		body.expanded .markdown-body .log-output-code {
+			font-size: 13px !important;
+			line-height: 1.6 !important;
+		}
+
+		/* Prevent all child elements from inheriting the 16px from .markdown-body */
+		body.expanded .markdown-body .log-output-container * {
+			font-size: inherit !important; /* Inherit from .log-output-container (13px), not .markdown-body (16px) */
+			line-height: inherit !important;
+		}
+
+		/* Re-apply specific sizes to header and code with higher specificity */
+		body.expanded .markdown-body .log-output-container .log-output-header {
+			font-size: 11px !important;
+			line-height: 1.6 !important;
+		}
+
+		body.expanded .markdown-body .log-output-container .log-output-code {
+			font-size: 13px !important;
+			line-height: 1.6 !important;
+		}
 	</style>
 </head>
 <body>
