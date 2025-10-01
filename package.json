@@ -7,7 +7,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "SKIP_TESTS=1 node scripts/build.js",
+    "build": "node scripts/build.js",
     "dev": "node --watch lib/cli.js",
     "start": "node lib/cli.js",
     "test": "vitest run",
