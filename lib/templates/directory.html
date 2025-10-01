@@ -95,6 +95,15 @@
 			margin-top: 5px;
 			font-size: 12px;
 			color: #666;
+			display: flex;
+			justify-content: space-between;
+			flex-wrap: wrap;
+		}
+		.upload-stats {
+			display: flex;
+			gap: 10px;
+			font-size: 11px;
+			color: #888;
 		}
 		.upload-error {
 			color: #d32f2f;
@@ -257,14 +266,18 @@
 		const displayName = relativePath ? relativePath + '/' + file.name : file.name;
 
 		// Create progress UI
-		const progressItem = createProgressItem(displayName, uploadId);
+		const progressItem = createProgressItem(displayName, uploadId, file.size);
 		uploadProgress.appendChild(progressItem);
 		uploadProgress.classList.add('active');
 
-		// Store upload info
+		// Store upload info with timing
 		activeUploads.set(uploadId, {
 			file: file,
-			element: progressItem
+			element: progressItem,
+			startTime: Date.now(),
+			lastTime: Date.now(),
+			lastLoaded: 0,
+			totalSize: file.size
 		});
 
 		// Create FormData
@@ -286,34 +299,34 @@
 		xhr.upload.addEventListener('progress', function(e) {
 			if (e.lengthComputable) {
 				const percentComplete = (e.loaded / e.total) * 100;
-				updateProgress(uploadId, percentComplete);
+				updateProgress(uploadId, percentComplete, e.loaded, e.total);
 			}
 		});
 
 		// Handle completion
 		xhr.addEventListener('load', function() {
 			if (xhr.status === 200) {
-				updateStatus(uploadId, 'success', 'Upload complete');
+				updateStatus(uploadId, 'success', 'Upload complete', file.size, file.size);
 				// Reload the page after a short delay to show the new file
 				setTimeout(() => {
 					window.location.reload();
 				}, 1000);
 			} else {
 				const error = xhr.responseText || 'Upload failed';
-				updateStatus(uploadId, 'error', error);
+				updateStatusMessage(uploadId, 'error', error);
 			}
 			cleanupUpload(uploadId);
 		});
 
 		// Handle errors
 		xhr.addEventListener('error', function() {
-			updateStatus(uploadId, 'error', 'Upload failed');
+			updateStatusMessage(uploadId, 'error', 'Upload failed');
 			cleanupUpload(uploadId);
 		});
 
 		// Handle abort
 		xhr.addEventListener('abort', function() {
-			updateStatus(uploadId, 'error', 'Upload cancelled');
+			updateStatusMessage(uploadId, 'error', 'Upload cancelled');
 			cleanupUpload(uploadId);
 		});
 
@@ -322,7 +335,7 @@
 		xhr.send(formData);
 	}
 
-	function createProgressItem(filename, uploadId) {
+	function createProgressItem(filename, uploadId, totalSize) {
 		const div = document.createElement('div');
 		div.className = 'upload-item';
 		div.id = 'upload_' + uploadId;
@@ -331,26 +344,106 @@
 			<div class="progress-bar">
 				<div class="progress-fill" style="width: 0%">0%</div>
 			</div>
-			<div class="upload-status">Uploading...</div>
+			<div class="upload-status">
+				<span class="status-text">Uploading...</span>
+				<div class="upload-stats">
+					<span class="upload-size">0 / ${formatSize(totalSize)}</span>
+					<span class="upload-speed">0 KB/s</span>
+					<span class="upload-eta">calculating...</span>
+				</div>
+			</div>
 		`;
 		return div;
 	}
 
-	function updateProgress(uploadId, percent) {
+	function formatSize(bytes) {
+		if (bytes === 0) return '0 B';
+		const k = 1024;
+		const sizes = ['B', 'KB', 'MB', 'GB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+	}
+
+	function formatTime(seconds) {
+		if (seconds < 60) return Math.round(seconds) + 's';
+		if (seconds < 3600) return Math.round(seconds / 60) + 'm ' + Math.round(seconds % 60) + 's';
+		return Math.round(seconds / 3600) + 'h ' + Math.round((seconds % 3600) / 60) + 'm';
+	}
+
+	function updateProgress(uploadId, percent, loaded, total) {
 		const upload = activeUploads.get(uploadId);
 		if (upload) {
+			const now = Date.now();
+			const timeDiff = (now - upload.lastTime) / 1000; // seconds
+			const bytesDiff = loaded - upload.lastLoaded;
+
+			// Update progress bar
 			const progressFill = upload.element.querySelector('.progress-fill');
 			progressFill.style.width = percent + '%';
 			progressFill.textContent = Math.round(percent) + '%';
+
+			// Calculate speed (bytes per second)
+			let speed = 0;
+			if (timeDiff > 0) {
+				speed = bytesDiff / timeDiff;
+			}
+
+			// Calculate ETA (estimated time remaining)
+			let eta = 'calculating...';
+			if (speed > 0) {
+				const remaining = total - loaded;
+				const etaSeconds = remaining / speed;
+				eta = formatTime(etaSeconds);
+			}
+
+			// Update stats
+			const sizeElement = upload.element.querySelector('.upload-size');
+			const speedElement = upload.element.querySelector('.upload-speed');
+			const etaElement = upload.element.querySelector('.upload-eta');
+
+			if (sizeElement) sizeElement.textContent = `${formatSize(loaded)} / ${formatSize(total)}`;
+			if (speedElement) speedElement.textContent = formatSize(speed) + '/s';
+			if (etaElement) etaElement.textContent = eta;
+
+			// Update tracking
+			upload.lastTime = now;
+			upload.lastLoaded = loaded;
 		}
 	}
 
-	function updateStatus(uploadId, status, message) {
+	function updateStatus(uploadId, status, message, loaded, total) {
 		const upload = activeUploads.get(uploadId);
 		if (upload) {
+			const statusText = upload.element.querySelector('.status-text');
 			const statusElement = upload.element.querySelector('.upload-status');
-			statusElement.textContent = message;
-			statusElement.className = 'upload-status upload-' + status;
+			const statsElement = upload.element.querySelector('.upload-stats');
+
+			if (statusText) {
+				statusText.textContent = message;
+				statusText.className = 'status-text upload-' + status;
+			}
+
+			// Update final stats
+			if (status === 'success' && statsElement) {
+				const totalTime = (Date.now() - upload.startTime) / 1000;
+				const avgSpeed = total / totalTime;
+				statsElement.innerHTML = `
+					<span class="upload-size">${formatSize(total)}</span>
+					<span class="upload-speed">${formatSize(avgSpeed)}/s avg</span>
+					<span class="upload-eta">${formatTime(totalTime)}</span>
+				`;
+			}
+		}
+	}
+
+	function updateStatusMessage(uploadId, status, message) {
+		const upload = activeUploads.get(uploadId);
+		if (upload) {
+			const statusText = upload.element.querySelector('.status-text');
+			if (statusText) {
+				statusText.textContent = message;
+				statusText.className = 'status-text upload-' + status;
+			}
 		}
 	}
 
