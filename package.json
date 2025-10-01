@@ -18,7 +18,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "migrate": "node scripts/migrate-to-esm.js",
-    "prepublishOnly": "npm test && npm run build"
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "code",
