@@ -1196,6 +1196,8 @@ markserv --upload docs/
 ## Future Roadmap
 
 ### Planned Enhancements
+
+#### Core Features
 1. **Search functionality** - full-text search across docs
 2. **Themes** - dark mode, custom color schemes
 3. **PDF export** - convert markdown to PDF
@@ -1204,6 +1206,312 @@ markserv --upload docs/
 6. **Plugin system** - extensible architecture
 7. **Mobile app** - dedicated iOS/Android apps
 8. **Cloud sync** - sync docs across devices
+9. **Visitor activity analytics** - track page views, popular content, and user engagement
+
+#### Git Integration Features
+
+**Git Branch Diff Visualization**
+- **Branch comparison viewer** - Visual diff between any two Git branches
+- **Multi-view modes**:
+  - **Side-by-side view** - Files shown in parallel columns with synchronized scrolling
+  - **Split view** - Unified diff with added/removed line highlighting
+  - **Inline view** - Traditional unified diff format with context
+  - **File tree view** - Hierarchical display of changed files with statistics
+- **Interactive features**:
+  - Click to expand/collapse file diffs
+  - Jump to next/previous change
+  - Filter by file type or path
+  - Search within diffs
+  - Syntax highlighting for all languages
+  - Line-by-line comments (future: with collaborative mode)
+- **Branch selection**:
+  - Dropdown to select source and target branches
+  - Support for local and remote branches
+  - Tags and commit SHA comparison
+  - Visual branch graph integration
+- **Diff statistics**:
+  - Files changed count
+  - Lines added/removed metrics
+  - Contributor statistics
+  - Change density heatmap
+- **Integration methods**:
+  - **URL-based**: `/git/diff?from=main&to=feature-branch`
+  - **Markdown syntax**: `[View branch diff](git://diff/main...feature-branch)`
+  - **UI widget**: Branch comparison dropdown in header
+  - **CLI command**: `markserv --git-diff main feature-branch`
+- **Advanced capabilities**:
+  - Ignore whitespace changes
+  - Show/hide binary file changes
+  - Custom context lines (3, 5, 10, all)
+  - Download diff as patch file
+  - Copy permalink to specific file or line
+  - Blame integration (show who changed each line)
+- **Performance optimizations**:
+  - Lazy load large diffs
+  - Virtual scrolling for files with 1000+ lines
+  - Incremental diff computation
+  - Cached diff results with invalidation
+- **Use cases**:
+  - Code review workflows
+  - Pull request documentation
+  - Release notes generation
+  - Feature branch tracking
+  - Merge conflict visualization
+  - Refactoring impact analysis
+
+**Git Commit History Visualization**
+- **Timeline view** - Chronological commit history with branch visualization
+- **Commit details** - Author, date, message, changed files
+- **Branch graph** - Visual representation of branch topology and merges
+- **Search and filter** - By author, date range, file path, or commit message
+
+**Technical Implementation**:
+- **Git backend**: Uses `git diff` command or libgit2 bindings
+- **Parser**: Unified diff format parser with syntax highlighting
+- **Renderer**: Custom diff rendering with line mapping
+- **Caching**: Cache diff results keyed by branch SHAs
+- **Permissions**: Read-only access to repository
+- **Security**: Sanitize branch names, prevent path traversal
+- **Integration**: Works with existing file serving infrastructure
+
+**Example Integration**:
+```markdown
+# Feature Branch Review
+
+## Changes from main
+[Compare branches](git://diff/main...feature-auth)
+→ Opens interactive diff viewer
+
+## Specific file comparison
+[View user model changes](git://diff/main...feature-auth/models/user.js)
+→ Shows only user.js changes
+
+## Commit range
+[View release changes](git://diff/v1.0.0...v2.0.0)
+→ All changes between versions
+```
+
+**Configuration**:
+```javascript
+// markserv.config.js
+{
+  git: {
+    enableDiff: true,
+    defaultBranches: ['main', 'develop'],
+    maxDiffSize: 10000, // lines
+    contextLines: 3,
+    showBinaryDiff: false,
+    cacheExpiry: 3600 // seconds
+  }
+}
+```
+
+#### Advanced Visualization Features
+
+**MLIR Graph Visualization**
+- **Interactive IR viewer** - Visual representation of MLIR intermediate representation
+- **Operation graph** - Node-based visualization of MLIR operations and data flow
+- **Dialect highlighting** - Color-coded visualization by dialect (arith, scf, linalg, gpu, etc.)
+- **Zoom and pan** - Interactive exploration of large IR graphs
+- **Operation inspection** - Hover tooltips showing operation details, types, and attributes
+- **SSA value tracking** - Visual highlighting of SSA value usage and definition chains
+- **Region and block visualization** - Hierarchical display of nested regions and basic blocks
+- **Optimization pass visualization** - Before/after comparison of transformation passes
+- **Integration**: Embed visualizations directly in `.mlir` file pages
+- **Use cases**:
+  - Compiler development and debugging
+  - ML framework optimization
+  - Hardware accelerator programming
+  - Educational demonstrations
+
+**ONNX Model Visualization**
+- **Model architecture viewer** - Interactive graph of neural network topology
+- **Layer-by-layer breakdown** - Visual representation of model layers and connections
+- **Tensor shape display** - Dimension information for inputs, outputs, and intermediate tensors
+- **Node information** - Operation types, parameters, and attributes
+- **Subgraph support** - Visualization of control flow and conditional operations
+- **Model statistics** - Parameter counts, FLOPs, memory requirements
+- **Export capabilities** - Save visualization as SVG/PNG
+- **Interactive features**:
+  - Zoom, pan, and node selection
+  - Search and filter operations
+  - Path highlighting between nodes
+  - Collapsible subgraphs
+- **Integration**: Automatic visualization for `.onnx` files
+- **Use cases**:
+  - Model architecture documentation
+  - Debugging model conversions
+  - Performance analysis
+  - Educational ML content
+
+**Technical Implementation**
+- **Rendering libraries**: D3.js, Cytoscape.js, or Graphviz integration
+- **Parser support**: MLIR C++ API bindings or text parsing, ONNX Python runtime
+- **Client-side rendering**: JavaScript-based visualization in browser
+- **Server-side generation**: Pre-generate graphs for large models
+- **Caching**: Cache generated visualizations for performance
+- **File format detection**: Auto-detect `.mlir` and `.onnx` files
+- **Fallback**: Source code view with syntax highlighting when visualization unavailable
+
+**Example Integration**:
+```markdown
+# Model Architecture
+
+View the ONNX model visualization:
+[model.onnx](./model.onnx)
+→ Automatically renders interactive graph
+
+View the MLIR IR:
+[optimized.mlir](./optimized.mlir)
+→ Shows both source code and graph visualization
+```
+
+#### Analytics & Monitoring Features
+
+**Visitor Activity Analytics**
+- **Real-time analytics dashboard** - Live visitor tracking and activity monitoring
+- **Page view metrics**:
+  - Total page views and unique visitors
+  - Popular pages ranking by views
+  - Visit duration and bounce rate
+  - Entry and exit pages
+  - Referrer sources (direct, search, social, etc.)
+- **Content engagement tracking**:
+  - Most viewed documentation sections
+  - Code snippet copy events
+  - Download button clicks
+  - Search query popularity
+  - Heading link clicks (deep link usage)
+- **User behavior analytics**:
+  - Navigation paths and user journeys
+  - Time spent on each page
+  - Scroll depth tracking
+  - Interactive element engagement (expand/collapse, view toggles)
+  - Session recording and heatmaps (optional)
+- **Technical metrics**:
+  - Browser and device statistics
+  - Screen resolution distribution
+  - Operating system breakdown
+  - Geographic location (privacy-aware)
+  - Network speed and performance metrics
+- **Data visualization**:
+  - Real-time visitor count widget
+  - Time-series graphs for page views
+  - Top content leaderboard
+  - Geographic heatmap of visitors
+  - Engagement funnel visualization
+- **Privacy-focused design**:
+  - **Cookie-free tracking** - No cookies required, respects Do Not Track
+  - **Anonymized IP addresses** - Hash or truncate IPs for privacy
+  - **Local-first storage** - SQLite database for self-hosted analytics
+  - **GDPR compliance** - Privacy-by-design with opt-out support
+  - **Transparent data collection** - Clear privacy policy and data retention
+- **Integration options**:
+  - **Built-in analytics** - Lightweight, privacy-focused, self-hosted
+  - **Google Analytics** - Optional GA4 integration
+  - **Plausible/Fathom** - Privacy-friendly third-party services
+  - **Custom webhook** - Send events to external analytics platforms
+  - **Export capabilities** - CSV/JSON export for custom analysis
+- **Dashboard features**:
+  - **Real-time view** - Live visitor activity and current pages
+  - **Historical trends** - Daily, weekly, monthly aggregations
+  - **Custom date ranges** - Flexible reporting periods
+  - **Comparison mode** - Compare time periods (e.g., this week vs. last week)
+  - **Alerts and notifications** - Traffic spikes, popular content alerts
+- **API access**:
+  - **RESTful API** - Query analytics data programmatically
+  - **GraphQL endpoint** - Flexible data fetching
+  - **Webhook triggers** - Real-time event notifications
+  - **Batch exports** - Scheduled data exports
+- **Performance considerations**:
+  - **Asynchronous tracking** - Non-blocking, minimal performance impact (<50ms)
+  - **Batched requests** - Reduce server load with request batching
+  - **Client-side caching** - Cache analytics scripts for fast loading
+  - **Database indexing** - Optimized queries for large datasets
+  - **Data retention policies** - Automatic cleanup of old data
+- **Use cases**:
+  - **Content optimization** - Identify and improve popular pages
+  - **Documentation effectiveness** - Measure user engagement and comprehension
+  - **Feature usage tracking** - Understand which features are most valuable
+  - **Performance monitoring** - Track page load times and user experience
+  - **Audience insights** - Understand your documentation's reach and demographics
+  - **SEO optimization** - Analyze search traffic and keyword performance
+
+**Technical Implementation**:
+- **Tracking beacon**: Lightweight JavaScript pixel or beacon for page views
+- **Backend storage**: SQLite for self-hosted, PostgreSQL for scale
+- **Data aggregation**: Scheduled jobs for computing analytics metrics
+- **Privacy controls**: Built-in anonymization and data retention policies
+- **Dashboard UI**: Embedded analytics page at `/analytics` route
+- **Access control**: Password-protected or IP-restricted analytics access
+
+**Example Integration**:
+```javascript
+// markserv.config.js
+{
+  analytics: {
+    enabled: true,
+    provider: 'builtin', // 'builtin' | 'ga4' | 'plausible' | 'custom'
+    privacy: {
+      anonymizeIp: true,
+      respectDoNotTrack: true,
+      cookieless: true
+    },
+    retention: {
+      rawData: 90, // days
+      aggregated: 365 // days
+    },
+    tracking: {
+      pageViews: true,
+      downloads: true,
+      codeSnippetCopies: true,
+      searchQueries: true,
+      scrollDepth: true
+    },
+    dashboard: {
+      enabled: true,
+      path: '/analytics',
+      auth: {
+        enabled: true,
+        password: process.env.ANALYTICS_PASSWORD
+      }
+    },
+    export: {
+      format: 'csv', // 'csv' | 'json'
+      schedule: 'weekly',
+      destination: './analytics-exports/'
+    }
+  }
+}
+```
+
+**Dashboard View Example**:
+```markdown
+# Analytics Dashboard
+
+## Overview (Last 7 Days)
+- 📊 **Total Page Views**: 15,234
+- 👥 **Unique Visitors**: 3,542
+- 📄 **Pages per Session**: 4.3
+- ⏱️ **Avg. Session Duration**: 5m 23s
+
+## Top Pages
+1. `/README.md` - 2,145 views
+2. `/docs/getting-started.md` - 1,823 views
+3. `/api/reference.md` - 1,234 views
+4. `/examples/tutorial.md` - 987 views
+
+## Traffic Sources
+- Direct: 45%
+- Search: 32%
+- Social: 15%
+- Referral: 8%
+
+## Most Copied Code Snippets
+1. Installation command (234 copies)
+2. Configuration example (189 copies)
+3. API usage sample (145 copies)
+```
 
 ### Community Contributions
 We welcome contributions in these areas:
@@ -1212,6 +1520,9 @@ We welcome contributions in these areas:
 - Performance optimizations
 - Bug fixes and improvements
 - Documentation and examples
+- **MLIR/ONNX visualization prototypes**
+- **Graph rendering libraries integration**
+- **Interactive visualization features**
 
 ---
 

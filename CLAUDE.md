@@ -26,6 +26,7 @@ markserv [file-or-directory]
 ./lib/cli.js -p 3000 -a 0.0.0.0 ./README.md  # Custom port and address
 ./lib/cli.js -s ./docs/                       # Silent mode
 ./lib/cli.js -v ./                            # Verbose mode
+./lib/cli.js -n ./                            # No file watching (disables live reload)
 ```
 
 ### Running a Single Test
