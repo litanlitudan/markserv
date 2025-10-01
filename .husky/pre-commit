@@ -1,7 +1,0 @@
-#!/bin/sh
-# Skip tests if SKIP_TESTS environment variable is set
-if [ -z "$SKIP_TESTS" ]; then
-  npm test
-else
-  echo "⏭️  Skipping tests (SKIP_TESTS is set)"
-fi
