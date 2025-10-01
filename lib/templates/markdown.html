@@ -26,6 +26,47 @@
 	       </script>
 	<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
 	<style>
+		/* Copy button for code blocks */
+		.code-block-wrapper {
+			position: relative;
+		}
+
+		.copy-code-button {
+			position: absolute;
+			top: 8px;
+			right: 8px;
+			padding: 6px 12px;
+			font-size: 12px;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+			line-height: 1.5;
+			color: #24292f;
+			background-color: #f6f8fa;
+			border: 1px solid rgba(27, 31, 36, 0.15);
+			border-radius: 6px;
+			cursor: pointer;
+			opacity: 0;
+			transition: opacity 0.2s, background-color 0.2s;
+			z-index: 10;
+		}
+
+		.code-block-wrapper:hover .copy-code-button {
+			opacity: 1;
+		}
+
+		.copy-code-button:hover {
+			background-color: #f3f4f6;
+			border-color: rgba(27, 31, 36, 0.25);
+		}
+
+		.copy-code-button:active {
+			background-color: #e1e4e8;
+		}
+
+		.copy-code-button.copied {
+			color: #0969da;
+			border-color: #0969da;
+		}
+
 		/* Add transition for width changes */
 		body {
 			transition: width 0.3s ease;
@@ -585,6 +626,111 @@
 
 		// Initialize heading copy functionality
 		addHeadingCopyFunctionality();
+
+		// Add copy buttons to code blocks
+		function addCopyButtonsToCodeBlocks() {
+			// Handle regular code blocks (pre > code, not line-numbered)
+			const regularCodeBlocks = document.querySelectorAll('.markdown-body pre:not(.code-block-wrapper pre) > code');
+
+			regularCodeBlocks.forEach(codeBlock => {
+				const pre = codeBlock.parentElement;
+
+				// Skip if already wrapped or if it's part of a code-block-container
+				if (pre.parentElement.classList.contains('code-block-wrapper') ||
+				    pre.closest('.code-block-container')) {
+					return;
+				}
+
+				// Create wrapper
+				const wrapper = document.createElement('div');
+				wrapper.className = 'code-block-wrapper';
+
+				// Create copy button
+				const copyButton = document.createElement('button');
+				copyButton.className = 'copy-code-button';
+				copyButton.textContent = 'Copy';
+				copyButton.setAttribute('aria-label', 'Copy code to clipboard');
+
+				// Copy functionality
+				copyButton.addEventListener('click', async () => {
+					try {
+						const text = codeBlock.textContent;
+						await navigator.clipboard.writeText(text);
+
+						// Visual feedback
+						copyButton.textContent = 'Copied!';
+						copyButton.classList.add('copied');
+
+						setTimeout(() => {
+							copyButton.textContent = 'Copy';
+							copyButton.classList.remove('copied');
+						}, 2000);
+					} catch (err) {
+						console.error('Failed to copy code:', err);
+						copyButton.textContent = 'Failed';
+						setTimeout(() => {
+							copyButton.textContent = 'Copy';
+						}, 2000);
+					}
+				});
+
+				// Wrap the pre element
+				pre.parentNode.insertBefore(wrapper, pre);
+				wrapper.appendChild(pre);
+				wrapper.appendChild(copyButton);
+			});
+
+			// Handle line-numbered code blocks (.code-block-container)
+			const lineNumberedBlocks = document.querySelectorAll('.code-block-container');
+
+			lineNumberedBlocks.forEach(container => {
+				// Skip if already has a copy button
+				if (container.querySelector('.copy-code-button')) {
+					return;
+				}
+
+				// Create copy button
+				const copyButton = document.createElement('button');
+				copyButton.className = 'copy-code-button';
+				copyButton.textContent = 'Copy';
+				copyButton.setAttribute('aria-label', 'Copy code to clipboard');
+
+				// Copy functionality - extract text from code lines only (not line numbers)
+				copyButton.addEventListener('click', async () => {
+					try {
+						// Get all code lines and extract text content
+						const codeLines = container.querySelectorAll('.code-line code');
+						const text = Array.from(codeLines)
+							.map(line => line.textContent)
+							.join('\n');
+
+						await navigator.clipboard.writeText(text);
+
+						// Visual feedback
+						copyButton.textContent = 'Copied!';
+						copyButton.classList.add('copied');
+
+						setTimeout(() => {
+							copyButton.textContent = 'Copy';
+							copyButton.classList.remove('copied');
+						}, 2000);
+					} catch (err) {
+						console.error('Failed to copy code:', err);
+						copyButton.textContent = 'Failed';
+						setTimeout(() => {
+							copyButton.textContent = 'Copy';
+						}, 2000);
+					}
+				});
+
+				// Add button to container
+				container.style.position = 'relative';
+				container.appendChild(copyButton);
+			});
+		}
+
+		// Call the function after page load
+		addCopyButtonsToCodeBlocks();
 
 		// Width toggle functionality
 		const body = document.body;
