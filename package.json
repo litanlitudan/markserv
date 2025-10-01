@@ -7,7 +7,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "node scripts/build.js",
+    "build": "SKIP_TESTS=1 node scripts/build.js",
     "dev": "node --watch lib/cli.js",
     "start": "node lib/cli.js",
     "test": "vitest run",
@@ -18,6 +18,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "migrate": "node scripts/migrate-to-esm.js",
+    "prepare": "node -e \"try { require('husky') } catch (e) { process.exit(0) }\" && npx husky || exit 0",
     "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
