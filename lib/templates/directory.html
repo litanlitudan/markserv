@@ -20,6 +20,7 @@
 		/* Style list items with proper spacing */
 		.markdown-body li.icon {
 			padding: 8px 0;
+			padding-right: 120px; /* Space for file size */
 			margin: 0;
 			position: relative;
 			padding-left: 40px; /* Space for icon */
@@ -33,21 +34,18 @@
 			transform: translateY(-50%);
 		}
 
-		/* Ensure links fill the width */
+		/* Ensure links don't interfere with layout */
 		.markdown-body li.icon a {
 			text-decoration: none;
-			flex: 1;
+			display: inline;
 		}
 
-		/* File size styling */
-		.markdown-body li.icon {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-		}
-
+		/* File size styling - positioned absolutely to prevent layout shift */
 		.markdown-body li.icon .file-size {
-			margin-left: 10px;
+			position: absolute;
+			right: 0;
+			top: 50%;
+			transform: translateY(-50%);
 			color: #666;
 			font-size: 0.85em;
 			font-family: monospace;
