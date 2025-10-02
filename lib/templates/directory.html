@@ -36,6 +36,22 @@
 		/* Ensure links fill the width */
 		.markdown-body li.icon a {
 			text-decoration: none;
+			flex: 1;
+		}
+
+		/* File size styling */
+		.markdown-body li.icon {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.markdown-body li.icon .file-size {
+			margin-left: 10px;
+			color: #666;
+			font-size: 0.85em;
+			font-family: monospace;
+			white-space: nowrap;
 		}
 
 		.upload-zone {
