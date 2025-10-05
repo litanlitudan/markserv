@@ -3,6 +3,36 @@
 - Markserv uses [Semantic Versioning](http://semver.org/)
 - Markserv [Keeps a ChangeLog](https://keepachangelog.com/en/1.0.0/)
 
+## [2.0.0-beta.2] - 2025-10-05
+
+### Changed
+
+- **Major**: Converted entire codebase from JavaScript to TypeScript
+  - Added comprehensive type safety throughout the application
+  - All core library files (`cli.ts`, `server.ts`, `splash.ts`, `readme.ts`, `cli-defs.ts`) converted to TypeScript
+  - Created dedicated `types.ts` file with all interface and type definitions
+  - Added TypeScript compiler configuration with strict type checking
+  - Updated build process to compile TypeScript to JavaScript in `dist/` directory
+  - All tests pass with TypeScript-compiled code (32/32 tests passing)
+
+### Added
+
+- TypeScript configuration (`tsconfig.json`) with strict mode enabled
+- Type definitions for all dependencies:
+  - `@types/express`, `@types/compression`, `@types/ws`
+  - `@types/yargs`, `@types/handlebars`, `@types/less`
+  - `@types/markdown-it`, `@types/mime-types`, `@types/multer`
+- Source maps for debugging TypeScript code
+- Declaration files (`.d.ts`) for library consumers
+- New build scripts: `build:watch`, `clean`, `typecheck`
+
+### Developer Experience
+
+- Enhanced IDE support with TypeScript IntelliSense
+- Compile-time error detection prevents runtime issues
+- Better code navigation and refactoring support
+- Improved code documentation through type annotations
+
 ## [1.17.4] - 2019-12-28
 
 ### Added

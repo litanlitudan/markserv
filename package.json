@@ -7,19 +7,20 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "node scripts/build.js",
-    "dev": "node --watch lib/cli.js",
-    "start": "node lib/cli.js",
-    "test": "vitest run",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "dev": "npm run build && node --watch dist/lib/cli.js",
+    "start": "node dist/lib/cli.js",
+    "test": "npm run build && vitest run",
     "test:watch": "vitest watch",
     "test:ui": "vitest --ui",
-    "cover": "vitest run --coverage",
+    "cover": "npm run build && vitest run --coverage",
     "lint": "eslint . --fix",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "migrate": "node scripts/migrate-to-esm.js",
-    "prepare": "node -e \"try { require('husky') } catch (e) { process.exit(0) }\" && npx husky || exit 0",
-    "prepublishOnly": "npm run build && npm test"
+    "clean": "rm -rf dist",
+    "prepare": "npm run build && node -e \"try { require('husky') } catch (e) { process.exit(0) }\" && npx husky || exit 0",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "keywords": [
     "code",
@@ -55,12 +56,10 @@
   "files": [
     "bin/markserv",
     "bin/readme",
-    "lib/cli.js",
-    "lib/cli-defs.js",
+    "dist/lib/**/*.js",
+    "dist/lib/**/*.d.ts",
+    "dist/lib/**/*.js.map",
     "lib/cli-help.txt",
-    "lib/readme.js",
-    "lib/server.js",
-    "lib/splash.js",
     "lib/icons",
     "lib/templates/directory.html",
     "lib/templates/markdown.html",
@@ -104,7 +103,16 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/express": "^5.0.3",
+    "@types/handlebars": "^4.0.40",
+    "@types/less": "^3.0.8",
+    "@types/markdown-it": "^14.1.2",
+    "@types/mime-types": "^3.0.1",
+    "@types/multer": "^2.0.0",
     "@types/node": "^20.16.11",
+    "@types/ws": "^8.18.1",
+    "@types/yargs": "^17.0.33",
     "@vitest/ui": "^2.1.3",
     "eslint": "^9.13.0",
     "eslint-config-prettier": "^9.1.0",
@@ -138,7 +146,7 @@
     }
   },
   "lint-staged": {
-    "*.js": [
+    "*.{js,ts}": [
       "eslint --fix",
       "prettier --write"
     ],

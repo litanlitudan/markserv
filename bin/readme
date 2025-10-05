@@ -10,8 +10,8 @@ import { spawn } from 'child_process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Get the actual readme script path
-const readmePath = join(__dirname, '..', 'lib', 'readme.js');
+// Get the actual readme script path (compiled from TypeScript)
+const readmePath = join(__dirname, '..', 'dist', 'lib', 'readme.js');
 
 // Pass through all arguments to the actual script
 const args = process.argv.slice(2);

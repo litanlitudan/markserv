@@ -10,8 +10,8 @@ import { spawn } from 'child_process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Get the actual CLI script path
-const cliPath = join(__dirname, '..', 'lib', 'cli.js');
+// Get the actual CLI script path (compiled from TypeScript)
+const cliPath = join(__dirname, '..', 'dist', 'lib', 'cli.js');
 
 // Pass through all arguments to the actual CLI
 const args = process.argv.slice(2);
