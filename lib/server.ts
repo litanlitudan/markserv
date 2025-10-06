@@ -41,7 +41,6 @@ import type {
 	ImplantOptions,
 	ImplantHandlers,
 	FileTypes,
-	MaterialIcons,
 	HttpServerResult
 } from './types.js'
 
@@ -828,7 +827,6 @@ fileTypes.watch = fileTypes.watch
 
 // In compiled dist/server.js, __dirname is 'dist/', so we need to go up to find lib/
 const libPath = path.join(__dirname, '..', 'lib')
-const materialIcons: MaterialIcons = require(path.join(libPath, 'icons', 'material-icons.json'))
 
 const faviconPath = path.join(libPath, 'icons', 'markserv.svg')
 const faviconData = fs.readFileSync(faviconPath)
@@ -912,35 +910,6 @@ const baseTemplate = (templateUrl: string, handlebarData: HandlebarData): Promis
 	}).catch(reject)
 })
 
-const lookUpIconClass = (path: string, type: 'folder' | 'file'): string => {
-	let iconDef: string | undefined
-
-	if (type === 'folder') {
-		iconDef = materialIcons.folderNames[path]
-
-		if (!iconDef) {
-			iconDef = 'folder'
-		}
-	}
-
-	if (type === 'file') {
-		// Try extensions first
-		const ext = path.slice(path.lastIndexOf('.') + 1)
-		iconDef = materialIcons.fileExtensions[ext]
-
-		// Then try applying the filename
-		if (!iconDef) {
-			iconDef = materialIcons.fileNames[path]
-		}
-
-		if (!iconDef) {
-			iconDef = 'file'
-		}
-	}
-
-	return iconDef || 'file'
-}
-
 const dirToHtml = (filePath: string): DirectoryInfo => {
 	const urls = fs.readdirSync(filePath)
 
@@ -1015,9 +984,8 @@ const dirToHtml = (filePath: string): DirectoryInfo => {
 		} else {
 			const href = encodedPath
 			const displayName = `📝 ${escapeHtml(item.name)}`
-			const iconClass = lookUpIconClass(item.name, 'file')
 			const fileSize = formatFileSize(item.size)
-			list += `\t<li class="icon ${iconClass} isfile" title="File"><a href="${href}">${displayName}</a><span class="file-size">${fileSize}</span></li>\n`
+			list += `\t<li class="isfile" title="File"><a href="${href}">${displayName}</a><span class="file-size">${fileSize}</span></li>\n`
 			fileCount++
 		}
 	})
@@ -1181,9 +1149,11 @@ const createRequestHandler = (flags: Flags) => {
 			const templateUrl = path.join(libPath, 'templates/error.html')
 			const fileName = path.parse(filePath).base
 			// Use decodeURIComponent instead of deprecated unescape
+			// Ensure the fallback referer (parent directory) always has a trailing slash
+			const parentPath = path.parse(decodedUrl).dir
 			const referer = req.headers.referer ?
 				decodeURIComponent(req.headers.referer) :
-				`${path.parse(decodedUrl).dir}/`
+				(parentPath === '' || parentPath === '/' ? '/' : parentPath + '/')
 			const errorMsg = md.utils.escapeHtml(err.message)
 			const errorStack = md.utils.escapeHtml(String(err.stack))
 
@@ -1342,7 +1312,7 @@ const createRequestHandler = (flags: Flags) => {
 						filePath: prettyPath,
 						fileName: path.basename(filePath),
 						lastModified,
-						parentDir: path.dirname(prettyPath) || '/'
+						parentDir: path.dirname(prettyPath) === '/' ? '/' : path.dirname(prettyPath) + '/'
 					}
 
 					return baseTemplate(templateUrl, handlebarData).then(final => {
@@ -1447,6 +1417,15 @@ const createRequestHandler = (flags: Flags) => {
 				errorPage(500, filePath, error)
 			})
 		} else if (isDir) {
+			// Redirect to URL with trailing slash if accessing directory without one
+			// This ensures relative links work correctly
+			if (!decodedUrl.endsWith('/')) {
+				const redirectUrl = decodedUrl + '/'
+				res.writeHead(301, { 'Location': redirectUrl })
+				res.end()
+				return
+			}
+
 			// Handle file upload for directories
 			if (req.method === 'POST' && req.url.includes('upload=true')) {
 				// First, parse the multipart form to get all fields

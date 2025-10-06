@@ -17,13 +17,15 @@
 			list-style: none;
 		}
 
-		/* Style list items with proper spacing */
-		.markdown-body li.icon {
+		/* Style all list items (both with and without icons) */
+		.markdown-body li.icon,
+		.markdown-body li.isfile,
+		.markdown-body li.isfolder {
 			padding: 8px 0;
 			padding-right: 120px; /* Space for file size */
 			margin: 0;
 			position: relative;
-			padding-left: 40px; /* Space for icon */
+			padding-left: 40px; /* Space for icon/emoji */
 		}
 
 		/* Position icons */
@@ -35,13 +37,20 @@
 		}
 
 		/* Ensure links don't interfere with layout */
-		.markdown-body li.icon a {
+		.markdown-body li a {
 			text-decoration: none;
 			display: inline;
+			color: #24292e; /* Consistent dark color for all file names */
+		}
+
+		/* Optional: Add hover effect */
+		.markdown-body li a:hover {
+			text-decoration: underline;
+			color: #0366d6; /* Blue on hover */
 		}
 
 		/* File size styling - positioned absolutely to prevent layout shift */
-		.markdown-body li.icon .file-size {
+		.markdown-body li .file-size {
 			position: absolute;
 			right: 0;
 			top: 50%;
