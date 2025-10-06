@@ -1060,9 +1060,222 @@ const createRequestHandler = (flags: Flags) => {
 
 	const markservUrlLead = '%7Bmarkserv%7D'
 
+	// Convert MLIR text to Model Explorer graph format
+	const convertMLIRToGraph = (mlirContent: string, filename: string): any => {
+		const nodes: any[] = []
+		const ssaToNodeId = new Map<string, string>() // Map SSA values to node IDs
+
+		// Parse MLIR operations and create nodes
+		const lines = mlirContent.split('\n')
+		let nodeId = 0
+
+		lines.forEach((line, index) => {
+			const trimmedLine = line.trim()
+
+			// Skip empty lines and comments
+			if (!trimmedLine || trimmedLine.startsWith('//')) return
+
+			let label = trimmedLine
+			let namespace = 'default'
+			let ssaValue: string | null = null
+			const currentNodeId = `node_${nodeId}`
+			const incomingEdges: any[] = []
+
+			// Try to extract operation type and SSA value
+			if (trimmedLine.includes('func.func') || trimmedLine.includes('func @')) {
+				const funcMatch = trimmedLine.match(/@([\w.]+)/)
+				label = funcMatch ? `${funcMatch[1]}` : 'function'
+				namespace = 'function'
+			} else if (trimmedLine.includes('=')) {
+				// Extract SSA value and operation
+				const ssaMatch = trimmedLine.match(/^(%[\w.]+)\s*=\s*([\w.]+)/)
+				if (ssaMatch) {
+					ssaValue = ssaMatch[1]
+					label = ssaMatch[2]
+					namespace = 'op'
+
+					// Extract operands to create edges
+					const operandsMatch = trimmedLine.match(/\((.*?)\)/)
+					if (operandsMatch) {
+						const operands = operandsMatch[1].split(',').map(o => o.trim())
+						operands.forEach((operand) => {
+							// Check if operand is an SSA value
+							if (operand.startsWith('%')) {
+								const operandName = operand.split(':')[0].trim() // Remove type info
+								const sourceNodeId = ssaToNodeId.get(operandName)
+								if (sourceNodeId) {
+									incomingEdges.push({
+										sourceNodeId: sourceNodeId
+									})
+								}
+							}
+						})
+					}
+				}
+			} else if (trimmedLine.includes('module')) {
+				label = 'module'
+				namespace = 'module'
+			} else if (trimmedLine.includes('return')) {
+				label = 'return'
+				namespace = 'control'
+				// Create edge from returned value
+				const returnMatch = trimmedLine.match(/return\s+(%[\w.]+)/)
+				if (returnMatch) {
+					const returnValue = returnMatch[1]
+					const sourceNodeId = ssaToNodeId.get(returnValue)
+					if (sourceNodeId) {
+						incomingEdges.push({
+							sourceNodeId: sourceNodeId
+						})
+					}
+				}
+			}
+
+			// Limit label length
+			if (label.length > 50) {
+				label = label.substring(0, 47) + '...'
+			}
+
+			nodes.push({
+				id: currentNodeId,
+				label: label,
+				namespace: namespace,
+				attrs: [
+					{ key: 'line', value: String(index + 1) },
+					{ key: 'code', value: trimmedLine.substring(0, 200) }
+				],
+				incomingEdges: incomingEdges
+			})
+
+			// Map SSA value to node ID for edge creation
+			if (ssaValue) {
+				ssaToNodeId.set(ssaValue, currentNodeId)
+			}
+
+			nodeId++
+		})
+
+		// If no nodes were found, create a placeholder
+		if (nodes.length === 0) {
+			nodes.push({
+				id: 'node_0',
+				label: 'Empty MLIR File',
+				namespace: 'default',
+				attrs: [
+					{ key: 'info', value: 'No operations found in file' }
+				],
+				incomingEdges: []
+			})
+		}
+
+		return {
+			id: filename,
+			nodes: nodes
+		}
+	}
+
 	return (req: Request, res: Response): void => {
 		// Properly decode the URL - decodeURIComponent handles special characters better than unescape
 		const decodedUrl = getPathFromUrl(decodeURIComponent(req.originalUrl))
+
+		// Handle Model Explorer route (/model-explorer)
+		if (decodedUrl.startsWith('/model-explorer/') || decodedUrl === '/model-explorer') {
+			const mlirFilePath = decodedUrl === '/model-explorer' ? '' : decodedUrl.substring(16) // Remove '/model-explorer/'
+
+			if (!mlirFilePath || mlirFilePath === '') {
+				res.status(400).send('Please specify an MLIR file path, e.g., /model-explorer/model.mlir')
+				return
+			}
+
+			// Resolve the actual file path
+			const actualFilePath = path.normalize(path.join(dir, mlirFilePath))
+
+			// Check if file exists and has .mlir extension
+			if (!actualFilePath.endsWith('.mlir')) {
+				res.status(400).send('Only MLIR files (.mlir extension) are supported')
+				return
+			}
+
+			fs.stat(actualFilePath, (err, stats) => {
+				if (err || !stats.isFile()) {
+					res.status(404).send(`MLIR file not found: ${mlirFilePath}`)
+					return
+				}
+
+				// Read the MLIR file content
+				fs.readFile(actualFilePath, 'utf8', (mlirErr, mlirContent) => {
+					if (mlirErr) {
+						console.error('Error reading MLIR file:', mlirErr)
+						res.status(500).send('Failed to read MLIR file')
+						return
+					}
+
+					// Convert MLIR to graph format
+					let graphData
+					try {
+						graphData = convertMLIRToGraph(mlirContent, path.basename(mlirFilePath))
+					} catch (conversionErr) {
+						console.error('Error converting MLIR to graph:', conversionErr)
+						res.status(500).send('Failed to convert MLIR to graph format')
+						return
+					}
+
+					// Load and render the Model Explorer template
+					const templatePath = path.join(libPath, 'templates/model-explorer.html')
+					fs.readFile(templatePath, 'utf8', (readErr, template) => {
+						if (readErr) {
+							console.error('Error loading Model Explorer template:', readErr)
+							res.status(500).send('Failed to load Model Explorer template')
+							return
+						}
+
+						const filename = path.basename(mlirFilePath)
+						const backUrl = path.dirname(mlirFilePath) || '/'
+
+						// Convert graph data to JSON - no need to escape since it's in a JSON script tag
+						const graphDataJson = JSON.stringify(graphData, null, 2)
+
+						// Replace template variables
+						const html = template
+							.replace(/\{\{filename\}\}/g, filename)
+							.replace(/\{\{graphData\}\}/g, graphDataJson)
+							.replace(/\{\{backUrl\}\}/g, backUrl)
+
+						res.setHeader('Content-Type', 'text/html; charset=utf-8')
+						res.status(200).send(html)
+					})
+				})
+			})
+			return
+		}
+
+		// Handle MLIR conversion API endpoint
+		if (req.url === '/api/convert-mlir' && req.method === 'POST') {
+			let body = ''
+
+			req.on('data', chunk => {
+				body += chunk.toString()
+			})
+
+			req.on('end', () => {
+				try {
+					const { mlirContent, filename } = JSON.parse(body)
+
+					// Parse MLIR content and convert to Model Explorer graph format
+					const graphData = convertMLIRToGraph(mlirContent, filename)
+
+					res.setHeader('Content-Type', 'application/json')
+					res.status(200).send(JSON.stringify(graphData))
+				} catch (error) {
+					console.error('MLIR conversion error:', error)
+					res.status(500).send(JSON.stringify({
+						error: 'Failed to convert MLIR to graph format',
+						message: (error as Error).message
+					}))
+				}
+			})
+			return
+		}
 
 		// Special handling for lib resources (CSS, icons, etc.)
 		// These should always be served from the actual lib directory, not relative to serving directory
@@ -1190,6 +1403,44 @@ const createRequestHandler = (flags: Flags) => {
 			// Send static file
 			const stream = fs.createReadStream(markservRelFilePath)
 			stream.on('error', () => {
+				res.status(404).end()
+			})
+			stream.pipe(res)
+			return
+		}
+
+		// Serve Model Explorer static files
+		if (decodedUrl.startsWith('/lib/model-explorer/')) {
+			const modelExplorerFile = decodedUrl.substring(20) // Remove '/lib/model-explorer/' prefix
+			const modelExplorerPath = path.join(libPath, 'model-explorer', modelExplorerFile)
+
+			if (flags.verbose) {
+				msg('model-explorer', style.link(modelExplorerPath), flags)
+			}
+
+			// Check if file exists
+			if (!fs.existsSync(modelExplorerPath)) {
+				console.error('Model Explorer file not found:', modelExplorerPath)
+				res.status(404).send('Model Explorer file not found: ' + modelExplorerFile)
+				return
+			}
+
+			// Check if it's a directory (shouldn't happen, but handle it)
+			const stat = fs.statSync(modelExplorerPath)
+			if (stat.isDirectory()) {
+				res.status(403).send('Cannot serve directory')
+				return
+			}
+
+			// Set appropriate content type
+			const mimeType = mime.lookup(modelExplorerPath)
+			res.setHeader('Content-Type', mimeType || 'application/octet-stream')
+			res.setHeader('Cache-Control', 'public, max-age=3600') // Cache for 1 hour
+
+			// Send the file
+			const stream = fs.createReadStream(modelExplorerPath)
+			stream.on('error', (err) => {
+				console.error('Error streaming model-explorer file:', err)
 				res.status(404).end()
 			})
 			stream.pipe(res)
