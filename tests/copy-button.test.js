@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import getPort from 'get-port'
 import fetch from 'node-fetch'
-import server from '../lib/server.js'
+import server from '../dist/server.js'
 
 const { init } = server
 

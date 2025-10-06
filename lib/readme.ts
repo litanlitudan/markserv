@@ -13,8 +13,9 @@ import type { Flags } from './types.js'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+// In compiled dist/readme.js, __dirname is 'dist/', so we need to go up to find lib/
 const cliHelp = String(
-	fs.readFileSync(path.join(__dirname, './cli-help.txt')),
+	fs.readFileSync(path.join(__dirname, '..', 'lib', 'cli-help.txt')),
 )
 
 const cliOpts = yargs(hideBin(process.argv))

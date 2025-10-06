@@ -3,12 +3,11 @@
 		"target": "ES2022",
 		"module": "ES2022",
 		"lib": ["ES2022"],
-		"moduleResolution": "node",
+		"moduleResolution": "node10",
 		"resolveJsonModule": true,
-		"allowJs": true,
+		"allowJs": false,
 		"checkJs": false,
 		"outDir": "./dist",
-		"rootDir": "./",
 		"removeComments": true,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
@@ -23,17 +22,13 @@
 		"noFallthroughCasesInSwitch": true
 	},
 	"include": [
-		"lib/**/*.ts",
-		"lib/**/*.js",
-		"bin/**/*.js",
-		"tests/**/*.ts",
-		"tests/**/*.js"
+		"lib/**/*.ts"
 	],
 	"exclude": [
 		"node_modules",
 		"dist",
 		"coverage",
-		"lib/**/*.js",
-		"bin/**/*.js"
+		"tests",
+		"bin"
 	]
 }

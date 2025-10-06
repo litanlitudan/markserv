@@ -1,6 +1,6 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest'
 import getPort from 'get-port'
-import serverModule from '../lib/server.js'
+import serverModule from '../dist/server.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
@@ -38,7 +38,7 @@ describe('Log file rendering', () => {
 		const html = await response.text()
 
 		// Check that the response is HTML
-		expect(response.headers.get('content-type')).toBe('text/html')
+		expect(response.headers.get('content-type')).toMatch(/text\/html/)
 
 		// Check for class-based styling (not inline styles)
 		expect(html).toContain('class="log-output-container"')

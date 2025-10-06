@@ -4,7 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import getPort from 'get-port'
 import fetch from 'node-fetch'
-import server from '../lib/server.js'
+import server from '../dist/server.js'
 
 const { init } = server
 const __filename = fileURLToPath(import.meta.url)

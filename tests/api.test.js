@@ -1,6 +1,6 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest'
 import getPort from 'get-port'
-import serverModule from '../lib/server.js'
+import serverModule from '../dist/server.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
@@ -49,7 +49,7 @@ describe('API route for direct downloads', () => {
 
 	it('should download JavaScript files via /api/ route', async () => {
 		// Test downloading a JS file
-		const response = await fetch(`http://localhost:${port}/api/lib/cli.js`)
+		const response = await fetch(`http://localhost:${port}/api/dist/cli.js`)
 
 		// Check response headers
 		expect(response.headers.get('content-type')).toMatch(/application\/javascript/)

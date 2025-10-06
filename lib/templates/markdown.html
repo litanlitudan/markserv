@@ -6,8 +6,8 @@
 	<meta http-equiv="X-UA-Compatible" content="ie=edge">
 	<title>{{title}}</title>
 	<meta charset="utf-8">
-	<link rel="stylesheet" href="{markserv}templates/markserv.css">
-	<link rel="stylesheet" href="{markserv}templates/highlight-js-github-gist.css">
+	<link rel="stylesheet" href="{markserv}/templates/markserv.css">
+	<link rel="stylesheet" href="{markserv}/templates/highlight-js-github-gist.css">
 	<!-- Syntax highlighting with all common languages -->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -490,7 +490,7 @@
 </head>
 <body>
 <article class="markdown-body">
-<header><sup><a href="{{filePath}}?download=true" class="download-link" download="{{fileName}}">⬇ Download</a> &nbsp;|&nbsp; Last Modified: {{lastModified}} &nbsp;|&nbsp; PID: {{pid}}
+<header><sup><a href="{{filePath}}?download=true" class="download-link" download="{{fileName}}">⬇ Download</a> &nbsp;|&nbsp; <a href="{{parentDir}}" class="download-link">📁 Folder</a> &nbsp;|&nbsp; Last Modified: {{lastModified}} &nbsp;|&nbsp; PID: {{pid}}
 <span class="width-toggle" id="widthToggle" title="Toggle expanded view">
 	<svg viewBox="0 0 16 16">
 		<path d="M3.5 5a.5.5 0 00-.5.5v5c0 .28.22.5.5.5h9a.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5h-9zM2 5.5C2 4.67 2.67 4 3.5 4h9c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5h-9A1.5 1.5 0 012 10.5v-5z"/>

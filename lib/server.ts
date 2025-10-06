@@ -72,11 +72,25 @@ const processTemplate = async (
 	handlers: Record<string, (varName: string) => Promise<string | false>>
 ): Promise<string> => {
 	let result = html
-	// Simple regex-based template variable replacement
-	const regex = /\{\{\s*(\w+)\s*\}\}/g
-	const matches = [...result.matchAll(regex)]
+	// Match both {{varName}} and {varName} syntax
+	const doubleRegex = /\{\{\s*(\w+)\s*\}\}/g
+	const singleRegex = /\{(\w+)\}/g
 
-	for (const match of matches) {
+	// Process double curly brace syntax {{varName}}
+	const doubleMatches = [...result.matchAll(doubleRegex)]
+	for (const match of doubleMatches) {
+		const [fullMatch, varName] = match
+		if (handlers[varName]) {
+			const value = await handlers[varName](varName)
+			if (value !== false) {
+				result = result.replace(fullMatch, value)
+			}
+		}
+	}
+
+	// Process single curly brace syntax {varName}
+	const singleMatches = [...result.matchAll(singleRegex)]
+	for (const match of singleMatches) {
 		const [fullMatch, varName] = match
 		if (handlers[varName]) {
 			const value = await handlers[varName](varName)
@@ -812,9 +826,11 @@ fileTypes.watch = fileTypes.watch
 	.concat(fileTypes.diff)
 	.concat(fileTypes.text)
 
-const materialIcons: MaterialIcons = require(path.join(__dirname, 'icons', 'material-icons.json'))
+// In compiled dist/server.js, __dirname is 'dist/', so we need to go up to find lib/
+const libPath = path.join(__dirname, '..', 'lib')
+const materialIcons: MaterialIcons = require(path.join(libPath, 'icons', 'material-icons.json'))
 
-const faviconPath = path.join(__dirname, 'icons', 'markserv.svg')
+const faviconPath = path.join(libPath, 'icons', 'markserv.svg')
 const faviconData = fs.readFileSync(faviconPath)
 
 const log = (str: string | null, flags: Flags, err?: Error): void => {
@@ -1021,16 +1037,8 @@ const getPathFromUrl = (url: string): string => {
 	return url.split(/[?#]/)[0]
 }
 
-interface MarkservPageObject {
-	lib: (dir: string, opts: { rootRelUrl: string }) => string
-}
-
-const markservPageObject: MarkservPageObject = {
-	lib: (_dir, opts) => {
-		const relPath = path.join('lib', opts.rootRelUrl)
-		return relPath
-	}
-}
+// Removed markservPageObject - no longer needed since we directly
+// return the relative path in the markserv handler
 
 const secureUrl = (url: string): string => {
 	const encodedUrl = encodeURI(url.replace(/%/g, '%25'))
@@ -1082,83 +1090,95 @@ const createRequestHandler = (flags: Flags) => {
 		maxDepth: 10
 	}
 
-	const implantHandlers: ImplantHandlers = {
-		markserv: (_prop: string): Promise<string | false> => new Promise(resolve => {
-			if (Reflect.has(markservPageObject, _prop)) {
-				const value = path.relative(dir, __dirname)
-				return resolve(value)
-			}
-
-			resolve(false)
-		}),
-
-		file: (url: string, opts?: ImplantOptions): Promise<string | false> => new Promise(resolve => {
-			const absUrl = path.join(opts?.baseDir || '', url)
-			getFile(absUrl)
-				.then(data => {
-					msg('implant', style.link(absUrl), flags)
-					resolve(data)
-				})
-				.catch((_error: Error) => {
-					warnmsg('implant 404', style.link(absUrl), flags)
-					resolve(false)
-				})
-		}),
-
-		less: (url: string, opts?: ImplantOptions): Promise<string | false> => new Promise(resolve => {
-			const absUrl = path.join(opts?.baseDir || '', url)
-			buildLessStyleSheet(absUrl)
-				.then(data => {
-					msg('implant', style.link(absUrl), flags)
-					resolve(data)
-				})
-				.catch((_error: Error) => {
-					warnmsg('implant 404', style.link(absUrl), flags)
-					resolve(false)
-				})
-		}),
-
-		markdown: (url: string, opts?: ImplantOptions): Promise<string | false> => new Promise(resolve => {
-			const absUrl = path.join(opts?.baseDir || '', url)
-			getFile(absUrl).then(markdownToHTML)
-				.then(data => {
-					msg('implant', style.link(absUrl), flags)
-					resolve(data)
-				})
-				.catch((_error: Error) => {
-					warnmsg('implant 404', style.link(absUrl), flags)
-					resolve(false)
-				})
-		}),
-
-		html: (url: string, opts?: ImplantOptions): Promise<string | false> => new Promise(resolve => {
-			const absUrl = path.join(opts?.baseDir || '', url)
-			getFile(absUrl)
-				.then(data => {
-					msg('implant', style.link(absUrl), flags)
-					resolve(data)
-				})
-				.catch((_error: Error) => {
-					warnmsg('implant 404', style.link(absUrl), flags)
-					resolve(false)
-				})
-		})
-	}
-
 	const markservUrlLead = '%7Bmarkserv%7D'
 
 	return (req: Request, res: Response): void => {
 		// Properly decode the URL - decodeURIComponent handles special characters better than unescape
 		const decodedUrl = getPathFromUrl(decodeURIComponent(req.originalUrl))
-		// Don't use unescape as it's deprecated and doesn't handle special characters well
-		const filePath = path.normalize(path.join(dir, decodedUrl))
+
+		// Special handling for lib resources (CSS, icons, etc.)
+		// These should always be served from the actual lib directory, not relative to serving directory
+		let filePath: string
+		if (decodedUrl.startsWith('/lib/')) {
+			// Remove the leading /lib/ and serve from the actual lib directory
+			const libResource = decodedUrl.substring(5)  // Remove '/lib/'
+			filePath = path.normalize(path.join(libPath, libResource))
+		} else {
+			// Don't use unescape as it's deprecated and doesn't handle special characters well
+			filePath = path.normalize(path.join(dir, decodedUrl))
+		}
 		const baseDir = path.parse(filePath).dir
 		implantOpts.baseDir = baseDir
+
+		// Since we're using absolute URLs starting with /lib/, we always use '/lib'
+		// This works from any directory depth
+		const relativePath = '/lib'
+
+		// Create request-specific handlers with the correct relative path
+		const implantHandlers: ImplantHandlers = {
+			markserv: (_prop: string): Promise<string | false> => new Promise(resolve => {
+				// Return the relative path from the current location to the lib directory
+				// This ensures CSS paths work correctly in nested directories
+				resolve(relativePath)
+			}),
+
+			file: (url: string, opts?: ImplantOptions): Promise<string | false> => new Promise(resolve => {
+				const absUrl = path.join(opts?.baseDir || '', url)
+				getFile(absUrl)
+					.then(data => {
+						msg('implant', style.link(absUrl), flags)
+						resolve(data)
+					})
+					.catch((_error: Error) => {
+						warnmsg('implant 404', style.link(absUrl), flags)
+						resolve(false)
+					})
+			}),
+
+			less: (url: string, opts?: ImplantOptions): Promise<string | false> => new Promise(resolve => {
+				const absUrl = path.join(opts?.baseDir || '', url)
+				buildLessStyleSheet(absUrl)
+					.then(data => {
+						msg('implant', style.link(absUrl), flags)
+						resolve(data)
+					})
+					.catch((_error: Error) => {
+						warnmsg('implant 404', style.link(absUrl), flags)
+						resolve(false)
+					})
+			}),
+
+			markdown: (url: string, opts?: ImplantOptions): Promise<string | false> => new Promise(resolve => {
+				const absUrl = path.join(opts?.baseDir || '', url)
+				getFile(absUrl).then(markdownToHTML)
+					.then(data => {
+						msg('implant', style.link(absUrl), flags)
+						resolve(data)
+					})
+					.catch((_error: Error) => {
+						warnmsg('implant 404', style.link(absUrl), flags)
+						resolve(false)
+					})
+			}),
+
+			html: (url: string, opts?: ImplantOptions): Promise<string | false> => new Promise(resolve => {
+				const absUrl = path.join(opts?.baseDir || '', url)
+				getFile(absUrl)
+					.then(data => {
+						msg('implant', style.link(absUrl), flags)
+						resolve(data)
+					})
+					.catch((_error: Error) => {
+						warnmsg('implant 404', style.link(absUrl), flags)
+						resolve(false)
+					})
+			})
+		}
 
 		const errorPage = (code: number, filePath: string, err: Error): Promise<void> => {
 			errormsg(String(code), filePath, flags, err)
 
-			const templateUrl = path.join(__dirname, 'templates/error.html')
+			const templateUrl = path.join(libPath, 'templates/error.html')
 			const fileName = path.parse(filePath).base
 			// Use decodeURIComponent instead of deprecated unescape
 			const referer = req.headers.referer ?
@@ -1207,8 +1227,8 @@ const createRequestHandler = (flags: Flags) => {
 		}
 
 		// API route for direct file downloads (e.g., /api/demo.js downloads demo.js)
-		if (req.url.startsWith('/api/')) {
-			const apiPath = req.url.substring(5) // Remove '/api/' prefix
+		if (decodedUrl.startsWith('/api/')) {
+			const apiPath = decodedUrl.substring(5) // Remove '/api/' prefix
 			const apiFilePath = path.normalize(path.join(dir, getPathFromUrl(decodeURIComponent(apiPath))))
 
 			if (flags.verbose) {
@@ -1304,7 +1324,7 @@ const createRequestHandler = (flags: Flags) => {
 			msg('markdown', style.link(prettyPath), flags)
 			getFile(filePath).then(markdownToHTML).then((html: string) => {
 				return processTemplate(html, implantHandlers).then(output => {
-					const templateUrl = path.join(__dirname, 'templates/markdown.html')
+					const templateUrl = path.join(libPath, 'templates/markdown.html')
 
 					const stats = fs.statSync(filePath)
 					const lastModified = stats.mtime.toLocaleString('en-US', {
@@ -1321,7 +1341,8 @@ const createRequestHandler = (flags: Flags) => {
 						pid: process.pid || 'N/A',
 						filePath: prettyPath,
 						fileName: path.basename(filePath),
-						lastModified
+						lastModified,
+						parentDir: path.dirname(prettyPath) || '/'
 					}
 
 					return baseTemplate(templateUrl, handlebarData).then(final => {
@@ -1354,7 +1375,7 @@ const createRequestHandler = (flags: Flags) => {
 			msg('diff', style.link(prettyPath), flags)
 			getFile(filePath).then(diffContent => {
 				const htmlContent = diffToHTML(diffContent)
-				const templateUrl = path.join(__dirname, 'templates/markdown.html')
+				const templateUrl = path.join(libPath, 'templates/markdown.html')
 
 				const stats = fs.statSync(filePath)
 				const lastModified = stats.mtime.toLocaleString('en-US', {
@@ -1371,7 +1392,8 @@ const createRequestHandler = (flags: Flags) => {
 					pid: process.pid || 'N/A',
 					filePath: prettyPath,
 					fileName: path.basename(filePath),
-					lastModified
+					lastModified,
+					parentDir: path.dirname(prettyPath) || '/'
 				}
 
 				return baseTemplate(templateUrl, handlebarData).then(final => {
@@ -1391,7 +1413,7 @@ const createRequestHandler = (flags: Flags) => {
 			msg('mlir', style.link(prettyPath), flags)
 			getFile(filePath).then(mlirContent => {
 				const htmlContent = mlirToHTML(mlirContent)
-				const templateUrl = path.join(__dirname, 'templates/markdown.html')
+				const templateUrl = path.join(libPath, 'templates/markdown.html')
 
 				const stats = fs.statSync(filePath)
 				const lastModified = stats.mtime.toLocaleString('en-US', {
@@ -1408,7 +1430,8 @@ const createRequestHandler = (flags: Flags) => {
 					pid: process.pid || 'N/A',
 					filePath: prettyPath,
 					fileName: path.basename(filePath),
-					lastModified
+					lastModified,
+					parentDir: path.dirname(prettyPath) || '/'
 				}
 
 				return baseTemplate(templateUrl, handlebarData).then(final => {
@@ -1517,7 +1540,7 @@ const createRequestHandler = (flags: Flags) => {
 				// Index: Browser is requesting a Directory Index
 				msg('dir', style.link(prettyPath), flags)
 
-				const templateUrl = path.join(__dirname, 'templates/directory.html')
+				const templateUrl = path.join(libPath, 'templates/directory.html')
 
 				const dirInfo = dirToHtml(filePath)
 
@@ -1565,7 +1588,7 @@ const createRequestHandler = (flags: Flags) => {
 				// Use logToHTML for .log files, textToHTML for others
 				const isLogFile = path.extname(filePath).toLowerCase() === '.log'
 				const htmlContent = isLogFile ? logToHTML(textContent) : textToHTML(textContent, filePath)
-				const templateUrl = path.join(__dirname, 'templates/markdown.html')
+				const templateUrl = path.join(libPath, 'templates/markdown.html')
 
 				const stats = fs.statSync(filePath)
 				const lastModified = stats.mtime.toLocaleString('en-US', {
@@ -1582,7 +1605,8 @@ const createRequestHandler = (flags: Flags) => {
 					pid: process.pid || 'N/A',
 					filePath: prettyPath,
 					fileName: path.basename(filePath),
-					lastModified
+					lastModified,
+					parentDir: path.dirname(prettyPath) || '/'
 				}
 
 				return baseTemplate(templateUrl, handlebarData).then(final => {
@@ -1611,7 +1635,7 @@ const createRequestHandler = (flags: Flags) => {
 				msg('text (mime)', style.link(prettyPath), flags)
 				getFile(filePath).then(textContent => {
 					const htmlContent = textToHTML(textContent, filePath)
-					const templateUrl = path.join(__dirname, 'templates/markdown.html')
+					const templateUrl = path.join(libPath, 'templates/markdown.html')
 
 					const stats = fs.statSync(filePath)
 					const lastModified = stats.mtime.toLocaleString('en-US', {
@@ -1673,7 +1697,7 @@ const createRequestHandler = (flags: Flags) => {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>${fileName}</title>
-	<link rel="stylesheet" href="{markserv}templates/markserv.css">
+	<link rel="stylesheet" href="{markserv}/templates/markserv.css">
 	<style>
 		.download-container {
 			max-width: 800px;
