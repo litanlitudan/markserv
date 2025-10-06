@@ -1475,6 +1475,16 @@ const createRequestHandler = (flags: Flags) => {
 					let targetDir = filePath
 					let targetPath: string
 
+					// Check write permissions on the base directory first
+					try {
+						fs.accessSync(filePath, fs.constants.W_OK)
+					} catch (accessErr) {
+						console.error('No write permission for directory:', filePath)
+						console.error('Error:', accessErr)
+						res.status(403).send('Permission denied: Cannot write to this directory. Please check directory permissions.')
+						return
+					}
+
 					try {
 						if (relativePath) {
 							// Create the subdirectory structure
@@ -1494,7 +1504,13 @@ const createRequestHandler = (flags: Flags) => {
 							if (writeErr) {
 								console.error('File write error:', writeErr)
 								console.error('Target path was:', targetPath)
-								res.status(500).send('Failed to save file: ' + writeErr.message)
+
+								// Provide more specific error message for permission errors
+								if ((writeErr as NodeJS.ErrnoException).code === 'EACCES') {
+									res.status(403).send('Permission denied: Cannot write file. Please check directory permissions.')
+								} else {
+									res.status(500).send('Failed to save file: ' + writeErr.message)
+								}
 								return
 							}
 
@@ -1508,7 +1524,13 @@ const createRequestHandler = (flags: Flags) => {
 					} catch (mkdirError) {
 						console.error('Directory creation error:', mkdirError)
 						console.error('Target directory was:', targetDir)
-						res.status(500).send('Failed to create directory: ' + (mkdirError as Error).message)
+
+						// Provide more specific error message for permission errors
+						if ((mkdirError as NodeJS.ErrnoException).code === 'EACCES') {
+							res.status(403).send('Permission denied: Cannot create directory. Please check parent directory permissions.')
+						} else {
+							res.status(500).send('Failed to create directory: ' + (mkdirError as Error).message)
+						}
 						return
 					}
 				})
