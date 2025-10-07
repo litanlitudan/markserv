@@ -9,7 +9,7 @@
 
 ```shell
 # Clone the repository
-$ git clone https://github.com/markserv/markserv.git
+$ git clone https://github.com/litanlitudan/markserv.git
 
 # Navigate to the markserv directory
 $ cd markserv
