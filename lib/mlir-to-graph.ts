@@ -35,12 +35,16 @@ export function convertMLIRToGraph(mlirContent: string, filename: string): Model
 	// Parse MLIR operations and create nodes
 	const lines = mlirContent.split('\n')
 	let nodeId = 0
+	let inFunctionBody = false
 
 	lines.forEach((line, index) => {
 		const trimmedLine = line.trim()
 
-		// Skip empty lines and comments
-		if (!trimmedLine || trimmedLine.startsWith('//')) return
+		// Skip empty lines, comments, and location metadata
+		if (!trimmedLine || trimmedLine.startsWith('//') || trimmedLine.startsWith('#loc')) return
+
+		// Skip module attributes line
+		if (trimmedLine.startsWith('module attributes')) return
 
 		let label = trimmedLine
 		let namespace = 'default'
@@ -48,47 +52,66 @@ export function convertMLIRToGraph(mlirContent: string, filename: string): Model
 		const currentNodeId = `node_${nodeId}`
 		const incomingEdges: GraphNode['incomingEdges'] = []
 
-		// Try to extract operation type and SSA value
+		// Handle function definitions
 		if (trimmedLine.includes('func.func') || trimmedLine.includes('func @')) {
 			const funcMatch = trimmedLine.match(/@([\w.]+)/)
 			label = funcMatch ? `${funcMatch[1]}` : 'function'
 			namespace = 'function'
-		} else if (trimmedLine.includes('=')) {
-			// Extract SSA value and operation
-			const ssaMatch = trimmedLine.match(/^(%[\w.]+)\s*=\s*([\w.]+)/)
-			if (ssaMatch) {
-				ssaValue = ssaMatch[1]
-				label = ssaMatch[2]
-				namespace = 'op'
+			inFunctionBody = true
 
-				// Extract operands to create edges
-				const operandsMatch = trimmedLine.match(/\((.*?)\)/)
-				if (operandsMatch) {
-					const operands = operandsMatch[1].split(',').map(o => o.trim())
-					operands.forEach((operand) => {
-						// Check if operand is an SSA value
-						if (operand.startsWith('%')) {
-							const operandName = operand.split(':')[0].trim() // Remove type info
-							const sourceNodeId = ssaToNodeId.get(operandName)
-							if (sourceNodeId) {
-								incomingEdges.push({
-									sourceNodeId: sourceNodeId
-								})
-							}
-						}
-					})
+			// Extract function arguments
+			const argsMatch = trimmedLine.match(/\(([^)]+)\)/)
+			if (argsMatch) {
+				const args = argsMatch[1]
+				// Extract argument names like %arg0, %arg1
+				const argMatches = args.matchAll(/(%arg\d+)/g)
+				for (const match of argMatches) {
+					ssaToNodeId.set(match[1], currentNodeId)
 				}
 			}
-		} else if (trimmedLine.includes('module')) {
+		}
+		// Handle SSA value definitions with various dialects (stablehlo, arith, etc.)
+		else if (trimmedLine.includes('=') && inFunctionBody) {
+			// More flexible SSA value and operation matching
+			// Matches patterns like: %0 = stablehlo.cosine %arg0
+			const ssaMatch = trimmedLine.match(/^(%[\w.]+)\s*=\s*([\w.]+)\s+(.*)/)
+			if (ssaMatch) {
+				ssaValue = ssaMatch[1]
+				const operation = ssaMatch[2]
+				label = operation
+				namespace = 'op'
+
+				// Extract the rest of the line after the operation
+				const operandsPart = ssaMatch[3]
+
+				// Find all SSA values in the operands (anything starting with %)
+				const ssaOperands = operandsPart.matchAll(/%[\w.]+/g)
+				for (const match of ssaOperands) {
+					const operandName = match[0]
+					const sourceNodeId = ssaToNodeId.get(operandName)
+					if (sourceNodeId) {
+						incomingEdges.push({
+							sourceNodeId: sourceNodeId
+						})
+					}
+				}
+			}
+		}
+		// Handle module declaration
+		else if (trimmedLine.startsWith('module')) {
 			label = 'module'
 			namespace = 'module'
-		} else if (trimmedLine.includes('return')) {
+		}
+		// Handle return statements
+		else if (trimmedLine.includes('return')) {
 			label = 'return'
 			namespace = 'control'
-			// Create edge from returned value
-			const returnMatch = trimmedLine.match(/return\s+(%[\w.]+)/)
-			if (returnMatch) {
-				const returnValue = returnMatch[1]
+			inFunctionBody = false
+
+			// Extract returned SSA values
+			const returnedValues = trimmedLine.matchAll(/%[\w.]+/g)
+			for (const match of returnedValues) {
+				const returnValue = match[0]
 				const sourceNodeId = ssaToNodeId.get(returnValue)
 				if (sourceNodeId) {
 					incomingEdges.push({
@@ -96,6 +119,11 @@ export function convertMLIRToGraph(mlirContent: string, filename: string): Model
 					})
 				}
 			}
+		}
+		// Handle closing braces
+		else if (trimmedLine === '}') {
+			// Skip closing braces - they're not operations
+			return
 		}
 
 		// Limit label length
