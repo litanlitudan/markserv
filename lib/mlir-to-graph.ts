@@ -10,6 +10,14 @@ export interface GraphNode {
 	label: string
 	namespace: string
 	attrs: Array<{key: string; value: string}>
+	outputsMetadata?: Array<{
+		id: string
+		attrs: Array<{key: string; value: string}>
+	}>
+	inputsMetadata?: Array<{
+		id: string
+		attrs: Array<{key: string; value: string}>
+	}>
 	incomingEdges: Array<{
 		sourceNodeId: string
 		sourceNodeOutputId?: string
@@ -20,6 +28,19 @@ export interface GraphNode {
 export interface ModelExplorerGraph {
 	id: string
 	nodes: GraphNode[]
+}
+
+/**
+ * Extract tensor shape from a type string
+ * @param typeStr The type string (e.g., "tensor<2x3xf32>" or "tensor<f32>")
+ * @returns The shape string (e.g., "2x3xf32" or "f32")
+ */
+function extractTensorShape(typeStr: string): string {
+	const tensorMatch = typeStr.match(/tensor<([^>]+)>/)
+	if (tensorMatch) {
+		return tensorMatch[1]
+	}
+	return typeStr
 }
 
 /**
@@ -59,7 +80,10 @@ export function convertMLIRToGraph(mlirContent: string, filename: string): Model
 		let ssaValue: string | null = null
 		const currentNodeId = `node_${nodeId}`
 		const incomingEdges: GraphNode['incomingEdges'] = []
+		const attrs: Array<{key: string; value: string}> = []
 		let shouldAddNode = false
+		let extractedInputTypes: string[] = []
+		let extractedOutputType = ''
 
 		// Handle module declaration
 		if (trimmedLine.startsWith('module')) {
@@ -99,7 +123,6 @@ export function convertMLIRToGraph(mlirContent: string, filename: string): Model
 				const quotedOp = ssaMatch[2]
 				const unquotedOp = ssaMatch[3]
 				const operation = quotedOp || unquotedOp || 'unknown_op'
-				label = operation
 
 				// Determine namespace from operation dialect
 				const dialectMatch = operation.match(/^([\w]+)\./)
@@ -107,6 +130,29 @@ export function convertMLIRToGraph(mlirContent: string, filename: string): Model
 
 				// Extract the operands part
 				const operandsPart = ssaMatch[4]
+
+				// Extract input types - match pattern: (type1, type2) or just type
+				const inputTypeMatch = trimmedLine.match(/:\s*\(([^)]+)\)\s*->/) || trimmedLine.match(/:\s*(.+?)(?:\s*->|$)/)
+				if (inputTypeMatch) {
+					const typeStr = inputTypeMatch[1].trim()
+					if (typeStr.includes(',')) {
+						extractedInputTypes = typeStr.split(',').map(t => t.trim())
+					} else if (typeStr) {
+						extractedInputTypes = [typeStr]
+					}
+				}
+
+				// Extract output type - match pattern: -> type
+				const outputTypeMatch = trimmedLine.match(/->\s*([^\s{]+)/)
+				if (outputTypeMatch) {
+					extractedOutputType = outputTypeMatch[1].trim()
+				} else if (inputTypeMatch && !trimmedLine.includes('->')) {
+					// If no arrow, the type after : is the output type
+					extractedOutputType = inputTypeMatch[1].trim()
+				}
+
+				// Set base label (type info will be added later from metadata)
+				label = operation
 
 				// Find all SSA values in the operands
 				// This regex matches %arg0, %0, %1, etc., but stops at : or )
@@ -163,21 +209,53 @@ export function convertMLIRToGraph(mlirContent: string, filename: string): Model
 
 		// Only add the node if we determined it should be added
 		if (shouldAddNode) {
-			// Limit label length
-			if (label.length > 50) {
-				label = label.substring(0, 47) + '...'
+			// Add standard attributes
+			attrs.push(
+				{ key: 'line', value: String(index + 1) },
+				{ key: 'code', value: trimmedLine.substring(0, 200) }
+			)
+
+			// Build inputsMetadata and outputsMetadata for operations
+			const node: GraphNode = {
+				id: currentNodeId,
+				label: label, // Will be enhanced below if metadata exists
+				namespace: namespace,
+				attrs: attrs,
+				incomingEdges: incomingEdges
 			}
 
-			nodes.push({
-				id: currentNodeId,
-				label: label,
-				namespace: namespace,
-				attrs: [
-					{ key: 'line', value: String(index + 1) },
-					{ key: 'code', value: trimmedLine.substring(0, 200) }
-				],
-				incomingEdges: incomingEdges
-			})
+			// Add metadata if we have extracted type information
+			if (extractedInputTypes.length > 0) {
+				node.inputsMetadata = extractedInputTypes.map((type, idx) => ({
+					id: String(idx),
+					attrs: [{key: 'tensor_shape', value: extractTensorShape(type)}]
+				}))
+			}
+
+			if (extractedOutputType) {
+				node.outputsMetadata = [{
+					id: '0',
+					attrs: [{key: 'tensor_shape', value: extractTensorShape(extractedOutputType)}]
+				}]
+			}
+
+			// Build enhanced label from extracted types
+			if (extractedInputTypes.length > 0 || extractedOutputType) {
+				let enhancedLabel = label
+				if (extractedInputTypes.length > 0) {
+					enhancedLabel += `\nin: ${extractedInputTypes.join(', ')}`
+				}
+				if (extractedOutputType) {
+					enhancedLabel += `\nout: ${extractedOutputType}`
+				}
+				// Limit label length for display
+				if (enhancedLabel.length > 100) {
+					enhancedLabel = enhancedLabel.substring(0, 97) + '...'
+				}
+				node.label = enhancedLabel
+			}
+
+			nodes.push(node)
 
 			// Map SSA value to node ID for edge creation
 			if (ssaValue) {
