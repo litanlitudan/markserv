@@ -46,46 +46,71 @@ export function convertMLIRToGraph(mlirContent: string, filename: string): Model
 		// Skip module attributes line
 		if (trimmedLine.startsWith('module attributes')) return
 
-		let label = trimmedLine
+		// Skip closing braces
+		if (trimmedLine === '}' || trimmedLine.startsWith('} loc(')) {
+			if (trimmedLine.includes('func') || inFunctionBody) {
+				inFunctionBody = false
+			}
+			return
+		}
+
+		let label = ''
 		let namespace = 'default'
 		let ssaValue: string | null = null
 		const currentNodeId = `node_${nodeId}`
 		const incomingEdges: GraphNode['incomingEdges'] = []
+		let shouldAddNode = false
 
-		// Handle function definitions
-		if (trimmedLine.includes('func.func') || trimmedLine.includes('func @')) {
-			const funcMatch = trimmedLine.match(/@([\w.]+)/)
-			label = funcMatch ? `${funcMatch[1]}` : 'function'
-			namespace = 'function'
-			inFunctionBody = true
-
-			// Extract function arguments
-			const argsMatch = trimmedLine.match(/\(([^)]+)\)/)
-			if (argsMatch) {
-				const args = argsMatch[1]
-				// Extract argument names like %arg0, %arg1
-				const argMatches = args.matchAll(/(%arg\d+)/g)
-				for (const match of argMatches) {
-					ssaToNodeId.set(match[1], currentNodeId)
-				}
+		// Handle module declaration
+		if (trimmedLine.startsWith('module')) {
+			// Only create a node for module if it's the standalone module declaration
+			if (!trimmedLine.includes('attributes')) {
+				label = 'module'
+				namespace = 'module'
+				shouldAddNode = true
 			}
 		}
-		// Handle SSA value definitions with various dialects (stablehlo, arith, etc.)
-		else if (trimmedLine.includes('=') && inFunctionBody) {
-			// More flexible SSA value and operation matching
-			// Matches patterns like: %0 = stablehlo.cosine %arg0
-			const ssaMatch = trimmedLine.match(/^(%[\w.]+)\s*=\s*([\w.]+)\s+(.*)/)
+		// Handle function definitions
+		else if (trimmedLine.includes('func.func') || trimmedLine.includes('func @')) {
+			const funcMatch = trimmedLine.match(/@([\w.]+)/)
+			label = funcMatch ? funcMatch[1] : 'function'
+			namespace = 'function'
+			inFunctionBody = true
+			shouldAddNode = true
+
+			// Extract and register function arguments
+			// Match patterns like: %arg0: tensor<f32>
+			const argMatches = [...trimmedLine.matchAll(/(%arg\d+)(?:\s*:\s*[^,)]+)?/g)]
+			for (const match of argMatches) {
+				const argName = match[1]
+				// Map function arguments to the function node itself for now
+				// This creates the connection from function inputs
+				ssaToNodeId.set(argName, currentNodeId)
+			}
+		}
+		// Handle SSA value definitions with various dialects
+		else if (inFunctionBody && trimmedLine.includes('=')) {
+			// Match patterns like: %0 = stablehlo.cosine %arg0 : tensor<f32>
+			// or: %result = "dialect.op"(%arg0, %arg1) : (type1, type2) -> type3
+			const ssaMatch = trimmedLine.match(/^(%[\w.#]+)\s*=\s*(?:"?([^"\s(]+)"?\s*\(|([^\s(]+)\s+)(.*)/)
 			if (ssaMatch) {
 				ssaValue = ssaMatch[1]
-				const operation = ssaMatch[2]
+				// Extract operation name from either quoted or unquoted format
+				const quotedOp = ssaMatch[2]
+				const unquotedOp = ssaMatch[3]
+				const operation = quotedOp || unquotedOp || 'unknown_op'
 				label = operation
-				namespace = 'op'
 
-				// Extract the rest of the line after the operation
-				const operandsPart = ssaMatch[3]
+				// Determine namespace from operation dialect
+				const dialectMatch = operation.match(/^([\w]+)\./)
+				namespace = dialectMatch ? dialectMatch[1] : 'op'
 
-				// Find all SSA values in the operands (anything starting with %)
-				const ssaOperands = operandsPart.matchAll(/%[\w.]+/g)
+				// Extract the operands part
+				const operandsPart = ssaMatch[4]
+
+				// Find all SSA values in the operands
+				// This regex matches %arg0, %0, %1, etc., but stops at : or )
+				const ssaOperands = [...operandsPart.matchAll(/%[\w.#]+(?=[\s,):}]|$)/g)]
 				for (const match of ssaOperands) {
 					const operandName = match[0]
 					const sourceNodeId = ssaToNodeId.get(operandName)
@@ -95,21 +120,18 @@ export function convertMLIRToGraph(mlirContent: string, filename: string): Model
 						})
 					}
 				}
+
+				shouldAddNode = true
 			}
 		}
-		// Handle module declaration
-		else if (trimmedLine.startsWith('module')) {
-			label = 'module'
-			namespace = 'module'
-		}
 		// Handle return statements
-		else if (trimmedLine.includes('return')) {
+		else if (inFunctionBody && trimmedLine.startsWith('return')) {
 			label = 'return'
 			namespace = 'control'
-			inFunctionBody = false
+			shouldAddNode = true
 
 			// Extract returned SSA values
-			const returnedValues = trimmedLine.matchAll(/%[\w.]+/g)
+			const returnedValues = [...trimmedLine.matchAll(/%[\w.#]+/g)]
 			for (const match of returnedValues) {
 				const returnValue = match[0]
 				const sourceNodeId = ssaToNodeId.get(returnValue)
@@ -120,34 +142,50 @@ export function convertMLIRToGraph(mlirContent: string, filename: string): Model
 				}
 			}
 		}
-		// Handle closing braces
-		else if (trimmedLine === '}') {
-			// Skip closing braces - they're not operations
-			return
+		// Handle yield statements (for regions/blocks)
+		else if (inFunctionBody && trimmedLine.includes('yield')) {
+			label = 'yield'
+			namespace = 'control'
+			shouldAddNode = true
+
+			// Extract yielded SSA values
+			const yieldedValues = [...trimmedLine.matchAll(/%[\w.#]+/g)]
+			for (const match of yieldedValues) {
+				const yieldValue = match[0]
+				const sourceNodeId = ssaToNodeId.get(yieldValue)
+				if (sourceNodeId) {
+					incomingEdges.push({
+						sourceNodeId: sourceNodeId
+					})
+				}
+			}
 		}
 
-		// Limit label length
-		if (label.length > 50) {
-			label = label.substring(0, 47) + '...'
+		// Only add the node if we determined it should be added
+		if (shouldAddNode) {
+			// Limit label length
+			if (label.length > 50) {
+				label = label.substring(0, 47) + '...'
+			}
+
+			nodes.push({
+				id: currentNodeId,
+				label: label,
+				namespace: namespace,
+				attrs: [
+					{ key: 'line', value: String(index + 1) },
+					{ key: 'code', value: trimmedLine.substring(0, 200) }
+				],
+				incomingEdges: incomingEdges
+			})
+
+			// Map SSA value to node ID for edge creation
+			if (ssaValue) {
+				ssaToNodeId.set(ssaValue, currentNodeId)
+			}
+
+			nodeId++
 		}
-
-		nodes.push({
-			id: currentNodeId,
-			label: label,
-			namespace: namespace,
-			attrs: [
-				{ key: 'line', value: String(index + 1) },
-				{ key: 'code', value: trimmedLine.substring(0, 200) }
-			],
-			incomingEdges: incomingEdges
-		})
-
-		// Map SSA value to node ID for edge creation
-		if (ssaValue) {
-			ssaToNodeId.set(ssaValue, currentNodeId)
-		}
-
-		nodeId++
 	})
 
 	// If no nodes were found, create a placeholder
